@@ -19,7 +19,7 @@ admin.initializeApp({
 
 const isCommand = messageStr => messageStr.startsWith(prefix);
 const getCommand = messageStr => {
-  const commandStr = messageStr.slice(1).split(' ')[0];
+  const commandStr = messageStr.slice(1).split(' ')[0].toLowerCase();
   return commands[commandStr];
 };
 const isValidCommand = (messageStr) => {
@@ -32,6 +32,8 @@ const executeCommand = (message, params) => {
 };
 
 // TODO ask for links
+// TODO embeds for registry
+// TODO complete library of emojis
 
 client.once('ready', () => {
   console.log(`${client.user.id} is ready`);
@@ -64,7 +66,6 @@ client.on('message', async (message) => {
 
   // Now record.
 
-  console.log('recording', politeness);
   let user = { opinion: 5 };
   const ref = admin.firestore().collection('discord_users').doc(message.author.id);
   const doc = await ref.get();

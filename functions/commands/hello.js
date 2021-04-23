@@ -1,5 +1,5 @@
-const reply = require('../utils/getReplyFunction');
+// const reply = require('../utils/getReplyFunction');
 
 module.exports = (message) => {
-  reply('!');
+  message.channel.send('👋');
 };
