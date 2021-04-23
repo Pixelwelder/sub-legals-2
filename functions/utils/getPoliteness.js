@@ -5,6 +5,7 @@ const filter = new Filter();
 // Could do that with reactions!!
 
 // pronouns!
+// poke another user
 
 /**
  * Politeness ranges from -1 to 1.
@@ -12,7 +13,6 @@ const filter = new Filter();
  * @param messageStr - The complete command string, with prefix.
  */
 module.exports = (commandStr) => {
-  if (filter.isProfane(commandStr)) return -1;
   const processedCommandStr = commandStr.toLowerCase();
 
   // TODO easily abused, e.g. "please kill yourself"

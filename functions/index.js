@@ -1,19 +1,21 @@
 // const functions = require("firebase-functions");
-// const admin = require('firebase-admin');
+const admin = require('firebase-admin');
 const Discord = require('discord.js');
 
-// const serviceAccount = require('./__config__/firebase-service-account.json');
+const serviceAccount = require('./__config__/firebase-service-account.json');
 const { botToken, prefix } = require('./__config__/discord.json');
 const commands = require('./commands');
 const getPoliteness = require('./utils/getPoliteness');
+const getIsProfane = require('./utils/getIsProfane');
+const react = require('./utils/react');
 
 const client = new Discord.Client();
 
-// admin.initializeApp({
-//   credential: admin.credential.cert(serviceAccount),
-//   // credential: admin.credential.applicationDefault(),
-//   databaseURL: 'https://species-registry.firebaseio.com',
-// });
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  // credential: admin.credential.applicationDefault(),
+  databaseURL: 'https://species-registry.firebaseio.com',
+});
 
 const isCommand = messageStr => messageStr.startsWith(prefix);
 const getCommand = messageStr => {
@@ -29,26 +31,63 @@ const executeCommand = (message, params) => {
   command(message, params);
 };
 
+// TODO ask for links
+
 client.once('ready', () => {
-  console.log('ready');
+  console.log(`${client.user.id} is ready`);
 });
 
 client.on('message', async (message) => {
   console.log('message', message.content);
-  // TODO Only ignore from THIS bot.
-  if (message.author.bot) return;
+  if (message.author.id === client.user.id) return;
+
+  react(message);
+  const isProfane = getIsProfane(message.content);
+  let politeness = 0;
+
   // Ignore any non-commands.
-  if (!isCommand(message.content)) return;
-  if (!isValidCommand(message.content)) {
-    commands.invalid(message);
+  if (isCommand(message.content)) {
+    politeness = getPoliteness(message.content)
+    if (!isProfane && politeness < 0) message.react('❌');
+    if (politeness > 0) message.react('❤');
+
+    // const isMentioned = message.mentions.has(bot)
+    // We have a genuine command.
+    if (isValidCommand(message.content)) {
+      executeCommand(message, { politeness });
+    } else {
+      commands.invalid(message);
+    }
   }
 
-  const politeness = getPoliteness(message.content);
-  if (politeness > 0) message.react('❤');
-  if (politeness < 0) message.react('❌');
+  if (isProfane) message.react('❌');
 
-  // We have a genuine command.
-  executeCommand(message, { politeness });
+  // Now record.
+
+  console.log('recording', politeness);
+  let user = { opinion: 5 };
+  const ref = admin.firestore().collection('discord_users').doc(message.author.id);
+  const doc = await ref.get();
+  if (doc.exists) {
+    console.log('exists');
+    user = doc.data();
+  }
+
+  let delta = 0;
+  if (politeness < 0) delta -= 1;
+  if (politeness > 0) delta += 1;
+  if (isProfane) delta -= 2;
+  let newOpinion = user.opinion + delta;
+  newOpinion = Math.max(0, newOpinion);
+  newOpinion = Math.min(9, newOpinion);
+
+  console.log(`opinion changed from ${user.opinion} to ${newOpinion} (${delta})`);
+  if (user.opinion !== newOpinion) {
+    await ref.set({
+      ...user,
+      opinion: newOpinion
+    });
+  }
 
   // console.log(message.content);
   // console.log(message.author);

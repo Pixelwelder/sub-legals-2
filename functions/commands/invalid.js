@@ -1,5 +1,5 @@
 const reply = require('../utils/getReplyFunction');
 
 module.exports = (message) => {
-  message.reply(':(');
+  message.react('🤔');
 };
