@@ -1,10 +1,11 @@
-const functions = require("firebase-functions");
-const admin = require('firebase-admin');
+// const functions = require("firebase-functions");
+// const admin = require('firebase-admin');
 const Discord = require('discord.js');
 
-const serviceAccount = require('./__config__/firebase-service-account.json');
+// const serviceAccount = require('./__config__/firebase-service-account.json');
 const { botToken, prefix } = require('./__config__/discord.json');
 const commands = require('./commands');
+const getPoliteness = require('./utils/getPoliteness');
 
 const client = new Discord.Client();
 
@@ -14,17 +15,18 @@ const client = new Discord.Client();
 //   databaseURL: 'https://species-registry.firebaseio.com',
 // });
 
-const validCommandNames = Object.keys(commands);
 const isCommand = messageStr => messageStr.startsWith(prefix);
+const getCommand = messageStr => {
+  const commandStr = messageStr.slice(1).split(' ')[0];
+  return commands[commandStr];
+};
 const isValidCommand = (messageStr) => {
   if (!isCommand(messageStr)) return false;
-  return !!commands[messageStr.slice(1)];
+  return !!getCommand(messageStr);
 }
-const getCommand = messageStr => commands[messageStr.slice(1)];
-const executeCommand = message => {
-  console.log('executeCommand', commands);
+const executeCommand = (message, params) => {
   const command = getCommand(message.content);
-  command(message);
+  command(message, params);
 };
 
 client.once('ready', () => {
@@ -41,8 +43,12 @@ client.on('message', async (message) => {
     commands.invalid(message);
   }
 
+  const politeness = getPoliteness(message.content);
+  if (politeness > 0) message.react('❤');
+  if (politeness < 0) message.react('❌');
+
   // We have a genuine command.
-  executeCommand(message);
+  executeCommand(message, { politeness });
 
   // console.log(message.content);
   // console.log(message.author);

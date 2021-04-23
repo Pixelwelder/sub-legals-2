@@ -1,5 +1,2 @@
-module.exports = {
-  invalid: require('./invalid'),
-  commands: require('./commands'),
-  members: require('./members')
-};
+const requireDirectory = require('require-directory');
+module.exports = requireDirectory(module, './');
