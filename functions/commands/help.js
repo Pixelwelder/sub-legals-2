@@ -3,6 +3,7 @@ const fs = require('fs');
 
 module.exports = {
   name: 'help',
+  usage: 'help',
   description: 'Lists the commands this drone is capable of understanding.',
   execute: (message) => {
     const { client } = message;
@@ -10,7 +11,7 @@ module.exports = {
       .filter(({ name }) => !['invalid'].includes(name))
       .map(command => ({
         name: command.name,
-        value: command.description
+        value: `"${command.usage}" - ${command.description}`
       }));
 
     const embed = new Discord.MessageEmbed()
@@ -19,6 +20,6 @@ module.exports = {
       .setDescription('Hello! I am a Network Drone. I can understand the following commands:')
       .addFields(fields);
 
-    message.channel.send(embed, { split: true });
+    message.channel.send(embed);
   }
 };

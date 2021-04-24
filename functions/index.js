@@ -19,23 +19,15 @@ admin.initializeApp({
   storageBucket: 'species-registry.appspot.com'
 });
 
-const go = async () => {
-  const bucket = admin.storage().bucket();
-  const file = bucket.file('images/inventory/real-estate/planet/00@1x.jpg');
-  const signedUrls = await file.getSignedUrl({ action: 'read', expires: '03-09-2491' });
-  console.log('IMAGE', signedUrls);
-}
-go();
-
 const isCommand = messageStr => messageStr.startsWith(prefix);
 const executeCommand = (message, params) => {
   const args = message.content.slice(prefix.length).trim().split(/ +/);
   const commandName = args.shift().toLowerCase();
 
   if (client.commands.has(commandName)) {
-    client.commands.get(commandName).execute(message, params, ...args);
+    client.commands.get(commandName).execute(message, params, args);
   } else {
-    client.commands.get('invalid').execute(message, params, ...args);
+    client.commands.get('invalid').execute(message, params, args);
   }
 };
 

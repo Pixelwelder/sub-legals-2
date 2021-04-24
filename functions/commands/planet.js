@@ -1,28 +1,22 @@
 const admin = require('firebase-admin');
 const Discord = require('discord.js');
-
-const path = 'images/inventory/real-estate/planet'
-const getImage = async (url = `${path}/default-planet@1x.jpg`) => {
-  try {
-    const bucket = admin.storage().bucket();
-    const file = bucket.file(url);
-    const signedUrls = await file.getSignedUrl({ action: 'read', expires: '03-09-2491' });
-    return signedUrls[0];
-  } catch (error) {
-    console.error(error);
-  }
-};
+const { getImage, path } = require('../utils/getImage');
+const sendHelp = require('../utils/sendHelp');
 
 module.exports = {
   name: 'planet',
   usage: 'planet <planet name>',
-  description: 'Asks the drone if it knows anything about the specified planet.',
-  execute: async (message) => {
-    const split = message.content.split(' ');
-    if (split.length < 2) message.react('🤔');
+  description: 'Asks the drone if it knows anything about a specific planet.',
+  execute: async function(message, options, userParams = {}) {
+    if (!userParams.length){
+      sendHelp(message, this);
+      return;
+    }
 
-    let subject = split[1].toLowerCase();
+    let subject = userParams[0];
     subject = `${subject.charAt(0).toUpperCase()}${subject.slice(1)}`;
+
+    console.log('subject', userParams);
 
     const docs = await admin.firestore().collection('inventory')
       .where('displayName', '==', subject)
@@ -41,7 +35,7 @@ module.exports = {
         .setImage(fullUrl);
       message.channel.send(embed);
     } else {
-      message.react('❌');
+      message.channel.send('🤷');
     }
   }
 };
