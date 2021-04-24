@@ -1,20 +1,25 @@
 const admin = require('firebase-admin');
+const { DateTime } = require('luxon');
 const sendHelp = require('../utils/sendHelp');
 const getStreakArgs = require('../utils/getStreakArgs');
 const getStreaks = require('../utils/getStreaks');
 const listStreaks = require('../utils/listStreaks');
 
-const newStreak = (overrides) => ({
-  created: '',
-  updated: '',
-  name: 'streak',
-  displayName: 'Streak',
-  description: 'Streak description',
-  current: 0,
-  longest: 0,
-  total: 0,
-  ...overrides
-});
+const newStreak = (overrides) => {
+  const nowStamp = DateTime.now().toISO();
+  return {
+    created: nowStamp,
+    lastCheckIn: nowStamp,
+    name: 'streak',
+    displayName: 'Streak',
+    description: 'Streak description',
+    current: 1,
+    longest: 1,
+    total: 1,
+    checkIns: [nowStamp],
+    ...overrides
+  };
+};
 
 module.exports = {
   name: 's:t',
@@ -38,6 +43,7 @@ module.exports = {
         // It's hidden. Make it visible again.
         // TODO Reset under certain conditions.
         currentStreak.isHidden = false;
+        currentStreak.lastCheckIn = DateTime.now().toISO();
         await userDoc.ref.update(user);
         message.reply(`Streak restored: once again tracking "${streakDisplayName}".`)
         listStreaks(message, streaks);
@@ -52,15 +58,9 @@ module.exports = {
 
     // This is a new streak.
     message.reply(`New streak started: now tracking "${streakDisplayName}".`)
-    const timestamp = admin.firestore.Timestamp.now();
     const streak = newStreak({
       name: streakName,
-      displayName: streakDisplayName,
-      current: 1,
-      longest: 1,
-      total: 1,
-      created: timestamp,
-      updated: timestamp
+      displayName: streakDisplayName
     });
 
     streaks.push(streak);

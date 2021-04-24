@@ -1,4 +1,5 @@
 const Discord = require('discord.js');
+const getRemainingTime = require('../utils/getRemainingTime');
 
 const listStreaks = (message, streaks) => {
   const tag = message.member.user.tag.split('#')[0];
@@ -8,9 +9,9 @@ const listStreaks = (message, streaks) => {
     .addFields(
       streaks
         .filter(({ isHidden }) => !isHidden)
-        .map(({ displayName, current, longest, total }) => ({
+        .map(({ displayName, current, longest, total, checkIns }) => ({
           name: displayName,
-          value: `Current: ${current} | Longest: ${longest} | Total: ${total}`
+          value: `Current: ${current} | Longest: ${longest} | Total: ${total} | (${getRemainingTime(checkIns[checkIns.length - 1]).toFormat('hh:mm:ss')} to check in)`
         })));
 
   if (!streaks.length) embed.setDescription('You have no current streaks.');

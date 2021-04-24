@@ -9,7 +9,6 @@ const getStreaks = async (message) => {
   let user = { opinion: 5, streaks: [] };
   if (userDoc) {
     user = userDoc.data();
-    console.log('User exists');
 
     streaks.push(...(user.streaks || []));
     streaks.forEach(streak => {

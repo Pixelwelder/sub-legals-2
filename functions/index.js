@@ -37,6 +37,7 @@ const executeCommand = (message, params) => {
 // TODO too many human mentions
 // TODO Announcements when species join or have revolutions.
 // TODO Unlocks and accomplishments for streaks.
+// TODO Migrate to twitter.
 
 client.once('ready', () => {
   console.log(`${client.user.id} is ready`);
