@@ -6,10 +6,10 @@ const { path, getImage } = require('../utils/getImage');
 module.exports = {
   name: 'species',
   usage: 'species <species name>',
-  description: 'Asks the drone if it knows anything about a specific species.',
+  description: 'Asks the drone if it knows anything about a specific species. All species are from the [Galactic Registry](https://welcometo.network/).',
   execute: async function(message, options, userParams) {
     const split = message.content.split(' ');
-    if (split.length < 2) {
+    if (split.length < 2 || split[1].toLowerCase() === 'please') {
       sendHelp(message, this);
       return;
     }
@@ -33,7 +33,7 @@ module.exports = {
       const embed = new Discord.MessageEmbed()
         .setColor('0x000000')
         .setTitle(`Species: "${species.displayName}"`)
-        .setDescription('One of the 1.4M happy and productive species of the Network.')
+        .setDescription(`[${species.displayName}](https://welcometo.network/registry/${species.name}) are one of the 1.4M happy and productive species of the Network.`)
 
       const leaderDocs = await admin.firestore().collection('leaders').where('player', '==', species.player).get();
       if (leaderDocs.size) {

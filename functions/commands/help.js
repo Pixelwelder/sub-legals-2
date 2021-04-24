@@ -9,6 +9,7 @@ module.exports = {
     const { client } = message;
     const fields = client.commands
       .filter(({ name }) => !['invalid'].includes(name))
+      .filter(({ hide }) => !hide)
       .map(command => ({
         name: command.name,
         value: `"${command.usage}" - ${command.description}`

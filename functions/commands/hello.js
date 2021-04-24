@@ -1,5 +1,3 @@
-// const reply = require('../utils/getReplyFunction');
-
 module.exports = {
   name: 'hello',
   usage: 'hello',

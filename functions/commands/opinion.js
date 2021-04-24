@@ -10,8 +10,6 @@ module.exports = {
   description: 'Asks the drone for their opinion of a user. You can specify users by tagging them, or tag no one and the drone will tell you its opinion of _you_',
   execute: async (message, { politeness } = {}) => {
     const mentions = message.mentions.users.map(user => user);
-    console.log('?', message.mentions.users.size);
-    console.log('mentions:', message.mentions.users.size);
     const ids = message.mentions.users.map(({ id }) => id);
     if (!ids.length) ids.push(message.author.id);
     const users = await admin.firestore().runTransaction(async (transaction) => {

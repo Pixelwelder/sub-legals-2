@@ -35,6 +35,8 @@ const executeCommand = (message, params) => {
 // TODO embeds for registry
 // TODO complete library of emojis
 // TODO too many human mentions
+// TODO Announcements when species join or have revolutions.
+// TODO Unlocks and accomplishments for streaks.
 
 client.once('ready', () => {
   console.log(`${client.user.id} is ready`);
