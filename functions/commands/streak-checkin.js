@@ -23,7 +23,7 @@ module.exports = {
 
     if (!toCheckIn) {
       message.reply(`You don't have a streak called "${streakName}".`);
-      listStreaks(message, streaks);
+      listStreaks(message, user, streaks);
       return;
     }
 
@@ -49,7 +49,7 @@ module.exports = {
       toCheckIn.checkIns.push(nowStamp);
 
       await userDoc.ref.update(user);
-      listStreaks(message, streaks);
+      listStreaks(message, user, streaks);
 
       // const diff = new admin.firestore.Timestamp().compareTo(toCheckIn.lastCheckIn);
       // console.log('diff', diff);

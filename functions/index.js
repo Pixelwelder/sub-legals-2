@@ -38,6 +38,8 @@ const executeCommand = (message, params) => {
 // TODO Announcements when species join or have revolutions.
 // TODO Unlocks and accomplishments for streaks.
 // TODO Migrate to twitter.
+// TODO newUser
+// TODO Achievement: all streaks in one day
 
 client.once('ready', () => {
   console.log(`${client.user.id} is ready`);

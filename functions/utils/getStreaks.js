@@ -7,6 +7,7 @@ const getStreaks = async (message) => {
   const streaks = [];
   const streaksByName = {};
   let user = { opinion: 5, streaks: [] };
+  // TODO Review references here.
   if (userDoc) {
     user = userDoc.data();
 

@@ -10,6 +10,6 @@ module.exports = {
     const { userDoc, streaks, streaksByName, user } = await getStreaks(message);
 
     message.reply('These are your current streaks.');
-    listStreaks(message, streaks);
+    listStreaks(message, user, streaks);
   }
 };

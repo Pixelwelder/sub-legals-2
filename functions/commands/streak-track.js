@@ -4,22 +4,8 @@ const sendHelp = require('../utils/sendHelp');
 const getStreakArgs = require('../utils/getStreakArgs');
 const getStreaks = require('../utils/getStreaks');
 const listStreaks = require('../utils/listStreaks');
-
-const newStreak = (overrides) => {
-  const nowStamp = DateTime.now().toISO();
-  return {
-    created: nowStamp,
-    lastCheckIn: nowStamp,
-    name: 'streak',
-    displayName: 'Streak',
-    description: 'Streak description',
-    current: 1,
-    longest: 1,
-    total: 1,
-    checkIns: [nowStamp],
-    ...overrides
-  };
-};
+const newStreak = require('../utils/newStreak');
+const newAchievement = require('../utils/newAchievement');
 
 module.exports = {
   name: 's:t',
@@ -46,12 +32,12 @@ module.exports = {
         currentStreak.lastCheckIn = DateTime.now().toISO();
         await userDoc.ref.update(user);
         message.reply(`Streak restored: once again tracking "${streakDisplayName}".`)
-        listStreaks(message, streaks);
+        listStreaks(message, user, streaks);
         return;
       } else {
         // Nope. The user has made a mistake.
         message.reply(`You already have a streak called ${streakName}.`);
-        listStreaks(message, streaks);
+        listStreaks(message, user, streaks);
         return;
       }
     }
@@ -63,9 +49,19 @@ module.exports = {
       displayName: streakDisplayName
     });
 
+    // It's their first streak.
+    if (!streaks.length) {
+      if (!user.achievements) user.achievements = [];
+      user.achievements.push(newAchievement({
+        name: 'streaker',
+        displayName: 'Streaker',
+        description: 'Created a first streak.'
+      }));
+    }
+
     streaks.push(streak);
     await userDoc.ref.update({ ...user, streaks });
 
-    listStreaks(message, streaks);
+    listStreaks(message, user, streaks);
   }
 };
