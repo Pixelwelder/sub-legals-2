@@ -10,7 +10,7 @@ module.exports = {
   name: 's:c',
   usage: 'streak:check-in <name of streak>',
   hide: true,
-  description: 'Tells the drone that you want to check in on a streak for today.',
+  description: 'Check in on a streak for today.',
   execute: async function (message, options, userParams) {
     if (!userParams.length){
       sendHelp(message, this);
@@ -22,7 +22,7 @@ module.exports = {
     const toCheckIn = streaksByName[streakName];
 
     if (!toCheckIn) {
-      message.reply(`You don't have a streak called "${streakName}".`);
+      message.reply(`you don't have a streak called "${streakName}".`);
       listStreaks(message, user, streaks);
       return;
     }
@@ -42,6 +42,7 @@ module.exports = {
         if (now.day !== lastCheckIn.day) {
           // It's a new day.
           toCheckIn.current ++;
+          toCheckIn.total ++;
           if (toCheckIn.current > toCheckIn.longest) toCheckIn.longest = toCheckIn.current;
         }
       }

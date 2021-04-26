@@ -11,42 +11,40 @@ module.exports = {
   name: 's:t',
   usage: 'streak:track <name of thing to track>',
   hide: true,
-  description: 'Tells the drone that you want to track a streak. Every day, you can update (or break) your streak.',
+  description: 'Begin tracking a streak. Every day, you can update (or break) your streak.',
   execute: async function (message, options, userParams) {
     if (!userParams.length){
       sendHelp(message, this);
       return;
     }
 
+    const { name, args } = getStreakArgs(message);
     const { userDoc, streaks, streaksByName, user } = await getStreaks(message);
-    const { streakName, streakDisplayName } = getStreakArgs(message);
-    const currentStreak = streaksByName[streakName];
+    const currentStreak = streaksByName[name.toLowerCase()];
 
     if (currentStreak) {
-      console.log('currentStreak', currentStreak);
       // The streak exists. Is it hidden?
       if (currentStreak.isHidden) {
         // It's hidden. Make it visible again.
-        // TODO Reset under certain conditions.
+        // TODO total++ if it's been more than a day.
         currentStreak.isHidden = false;
-        currentStreak.lastCheckIn = DateTime.now().toISO();
+        currentStreak.checkIns.push(DateTime.now().toISO());
         await userDoc.ref.update(user);
-        message.reply(`Streak restored: once again tracking "${streakDisplayName}".`)
+        message.reply(`you've restored a streak: once again tracking "${name}".`)
         listStreaks(message, user, streaks);
         return;
       } else {
         // Nope. The user has made a mistake.
-        message.reply(`You already have a streak called ${streakName}.`);
+        message.reply(`you already have a streak called ${name}.`);
         listStreaks(message, user, streaks);
         return;
       }
     }
 
     // This is a new streak.
-    message.reply(`New streak started: now tracking "${streakDisplayName}".`)
+    message.reply(`you've started a new streak: now tracking "${name}".`)
     const streak = newStreak({
-      name: streakName,
-      displayName: streakDisplayName
+      displayName: name
     });
 
     // It's their first streak.

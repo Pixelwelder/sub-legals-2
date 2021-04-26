@@ -2,6 +2,7 @@
 const admin = require('firebase-admin');
 const Discord = require('discord.js');
 const fs = require('fs');
+const yargs = require('yargs');
 
 const serviceAccount = require('./__config__/firebase-service-account.json');
 const { botToken, prefix } = require('./__config__/discord.json');
@@ -9,8 +10,6 @@ const client = require('./client');
 const getPoliteness = require('./utils/getPoliteness');
 const getIsProfane = require('./utils/getIsProfane');
 const react = require('./utils/react');
-
-// const client = new Discord.Client();
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -21,13 +20,15 @@ admin.initializeApp({
 
 const isCommand = messageStr => messageStr.startsWith(prefix);
 const executeCommand = (message, params) => {
+  // TODO Reduce this to a single object.
+  const obj = yargs.parse(message.content);
   const args = message.content.slice(prefix.length).trim().split(/ +/);
   const commandName = args.shift().toLowerCase();
 
   if (client.commands.has(commandName)) {
-    client.commands.get(commandName).execute(message, params, args);
+    client.commands.get(commandName).execute(message, params, args, obj);
   } else {
-    client.commands.get('invalid').execute(message, params, args);
+    client.commands.get('invalid').execute(message, params, args, obj);
   }
 };
 
@@ -40,6 +41,7 @@ const executeCommand = (message, params) => {
 // TODO Migrate to twitter.
 // TODO newUser
 // TODO Achievement: all streaks in one day
+// TODO Change streak name.
 
 client.once('ready', () => {
   console.log(`${client.user.id} is ready`);

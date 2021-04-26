@@ -13,7 +13,7 @@ const getStreaks = async (message) => {
 
     streaks.push(...(user.streaks || []));
     streaks.forEach(streak => {
-      streaksByName[streak.name] = streak;
+      streaksByName[streak.displayName.toLowerCase()] = streak;
     })
   }
 

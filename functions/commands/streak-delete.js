@@ -8,29 +8,38 @@ module.exports = {
   name: 's:d',
   usage: 'streak:delete <name of streak to delete>',
   hide: true,
-  description: 'Tells the drone that you want to delete a streak.',
-  execute: async function (message, options, userParams) {
+  description: 'Delete a streak.',
+  execute: async function (message, options, userParams, yargParams) {
     if (!userParams.length){
       sendHelp(message, this);
       return;
     }
 
-    const { streakName, streakDisplayName } = getStreakArgs(message);
+    const { name, args } = getStreakArgs(message);
     const { userDoc, streaks, streaksByName, user } = await getStreaks(message);
-    const toDelete = streaksByName[streakName];
-
-    console.log('toDelete', toDelete);
+    const toDelete = streaksByName[name.toLowerCase()];
 
     if (!toDelete) {
-      message.reply(`You don't have a streak called "${streakName}".`);
+      message.reply(`you don't have a streak called "${name}".`);
       listStreaks(message, user, streaks);
       return;
     }
 
-    toDelete.isHidden = true;
+    if (toDelete.isHidden) {
+      const { forever } = yargParams;
+      if (forever) {
+        user.streaks = user.streaks.filter(streak => streak.displayName !== name);
+      } else {
+        message.reply(`Your streak "${name}" has already been deleted.`);
+        return;
+      }
+    } else {
+      toDelete.isHidden = true;
+    }
+
     await userDoc.ref.update(user);
 
-    message.reply(`Streak "${streakDisplayName}" has been deleted. You can track it again to restore it.`);
+    message.reply(`streak "${name}" has been deleted. You can track it again to restore it.`);
     listStreaks(message, user, streaks);
   }
 }

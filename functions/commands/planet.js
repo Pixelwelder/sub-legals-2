@@ -16,8 +16,6 @@ module.exports = {
     let subject = userParams[0];
     subject = `${subject.charAt(0).toUpperCase()}${subject.slice(1)}`;
 
-    console.log('subject', userParams);
-
     const docs = await admin.firestore().collection('inventory')
       .where('displayName', '==', subject)
       .limit(1)
@@ -27,7 +25,6 @@ module.exports = {
       const data = docs.docs[0].data();
       const { image: { x1Url: url } } = data;
       const fullUrl = await getImage(`${path}/${url}`);
-      console.log('fullUrl', fullUrl);
       const embed = new Discord.MessageEmbed()
         .setColor('0x000000')
         .setTitle(`Planet ${data.displayName}`)
