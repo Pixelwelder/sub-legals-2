@@ -7,7 +7,7 @@ const getRemainingTime = require('../utils/getRemainingTime');
 const sendHelp = require('../utils/sendHelp');
 
 module.exports = {
-  name: 's:c',
+  name: 'sc',
   usage: 'streak:check-in <name of streak>',
   hide: true,
   description: 'Check in on a streak for today.',
@@ -18,11 +18,11 @@ module.exports = {
     }
 
     const { userDoc, streaks, streaksByName, user } = await getStreaks(message);
-    const { streakName, streakDisplayName } = getStreakArgs(message);
-    const toCheckIn = streaksByName[streakName];
+    const { name, args } = getStreakArgs(message);
+    const toCheckIn = streaksByName[name.toLowerCase()];
 
     if (!toCheckIn) {
-      message.reply(`you don't have a streak called "${streakName}".`);
+      message.reply(`you don't have a streak called "${name}".`);
       listStreaks(message, user, streaks);
       return;
     }
@@ -31,9 +31,9 @@ module.exports = {
       const now = DateTime.now();
       const nowStamp = now.toISO();
       const lastCheckInStamp = toCheckIn.checkIns[toCheckIn.checkIns.length - 1];
-      const remaining = getRemainingTime(lastCheckInStamp);
+      const { isGood } = getRemainingTime(lastCheckInStamp);
 
-      if (remaining.hours < 0) {
+      if (!isGood) {
         // Oops.
         toCheckIn.current = 1;
       } else {

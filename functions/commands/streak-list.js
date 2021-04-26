@@ -2,7 +2,7 @@ const getStreaks = require('../utils/getStreaks');
 const listStreaks = require('../utils/listStreaks');
 
 module.exports = {
-  name: 's:l',
+  name: 'sl',
   usage: 'streak:list',
   hide: true,
   description: 'List all your current streaks.',

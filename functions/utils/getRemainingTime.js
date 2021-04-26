@@ -7,11 +7,7 @@ module.exports = (last, limit = 24, message = 'Broken') => {
 
   const limitDuration = Duration.fromObject({ hours: limit });
   const isGood = diff.hours < limitDuration.hours;
-  const str = isGood ? `${diff.toFormat('hh:mm:ss')} to check in` : message;
-  return str;
-  console.log('str', str);
-  // console.log(str);
-
   const remaining = limitDuration.minus(diff);
-  return remaining;
+  const str = isGood ? `${remaining.toFormat('hh:mm:ss')} to check in` : message;
+  return { str, remaining, isGood };
 };

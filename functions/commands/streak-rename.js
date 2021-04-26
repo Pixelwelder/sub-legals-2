@@ -3,10 +3,10 @@ const listStreaks = require('../utils/listStreaks');
 const sendHelp = require('../utils/sendHelp');
 const admin = require('firebase-admin');
 
-const separator = ' to '
+const separator = ', '
 
 module.exports = {
-  name: 's:r',
+  name: 'sr',
   usage: `streak:rename <streak name>${separator}<new name>`,
   hide: true,
   description: 'Rename a streak.',
@@ -20,7 +20,7 @@ module.exports = {
 
     const { userDoc, streaks, streaksByName, user } = await getStreaks(message);
 
-    const streak = streaksByName[oldName];
+    const streak = streaksByName[oldName.toLowerCase()];
     if (!streak) {
       message.reply(`you don't have a streak named "${oldName}."`);
       listStreaks(message, user, streaks, userParams);
@@ -30,7 +30,7 @@ module.exports = {
     if (oldName === newName) {
       message.reply(`that streak is already named "${oldName}."`)
     }
-    // TODO TODO TODO CANNOT USE HYPHENATED NAMES
+
     // Do the rename.
     streak.displayName = newName;
     await userDoc.ref.update(user);

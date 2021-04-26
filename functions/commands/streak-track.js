@@ -8,7 +8,7 @@ const newStreak = require('../utils/newStreak');
 const newAchievement = require('../utils/newAchievement');
 
 module.exports = {
-  name: 's:t',
+  name: 'st',
   usage: 'streak:track <name of thing to track>',
   hide: true,
   description: 'Begin tracking a streak. Every day, you can update (or break) your streak.',

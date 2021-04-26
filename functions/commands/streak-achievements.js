@@ -2,7 +2,7 @@ const Discord = require('discord.js');
 const getStreaks = require('../utils/getStreaks');
 
 module.exports = {
-  name: 's:a',
+  name: 'sa',
   usage: 'streak:achievements',
   hide: true,
   description: 'List your achievements.',

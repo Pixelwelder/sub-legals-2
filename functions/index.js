@@ -23,7 +23,7 @@ const executeCommand = (message, params) => {
   // TODO Reduce this to a single object.
   const obj = yargs.parse(message.content);
   const args = message.content.slice(prefix.length).trim().split(/ +/);
-  const commandName = args.shift().toLowerCase();
+  const commandName = args.shift().toLowerCase().replace(/[^\w\s]/gi, '');
 
   if (client.commands.has(commandName)) {
     client.commands.get(commandName).execute(message, params, args, obj);
@@ -33,7 +33,6 @@ const executeCommand = (message, params) => {
 };
 
 // TODO ask for links
-// TODO embeds for registry
 // TODO complete library of emojis
 // TODO too many human mentions
 // TODO Announcements when species join or have revolutions.
@@ -42,6 +41,7 @@ const executeCommand = (message, params) => {
 // TODO newUser
 // TODO Achievement: all streaks in one day
 // TODO Change streak name.
+// TODO Give achievements via a command (from me).
 
 client.once('ready', () => {
   console.log(`${client.user.id} is ready`);

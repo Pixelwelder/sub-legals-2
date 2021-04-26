@@ -5,7 +5,7 @@ const getStreaks = require('../utils/getStreaks');
 const listStreaks = require('../utils/listStreaks');
 
 module.exports = {
-  name: 's:d',
+  name: 'sd',
   usage: 'streak:delete <name of streak to delete>',
   hide: true,
   description: 'Delete a streak.',
