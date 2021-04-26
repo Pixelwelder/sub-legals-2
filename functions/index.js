@@ -16,7 +16,7 @@ const executeCommand = (message, params) => {
   // TODO Reduce this to a single object.
   const obj = yargs.parse(message.content);
   const args = message.content.slice(prefix.length).trim().split(/ +/);
-  const commandName = args.shift().toLowerCase().replace(/[^\w\s]/gi, '');
+  const commandName = args.shift().toLowerCase();//.replace(/[^\w\s]/gi, '');
 
   if (client.commands.has(commandName)) {
     client.commands.get(commandName).execute(message, params, args, obj);

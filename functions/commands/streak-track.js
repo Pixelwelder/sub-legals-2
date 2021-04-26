@@ -8,10 +8,11 @@ const newStreak = require('../utils/newStreak');
 const newAchievement = require('../utils/newAchievement');
 
 module.exports = {
-  name: 'st',
+  name: 'streak:track',
   usage: 'streak:track <name of thing to track>',
-  hide: true,
+  hide: false,
   description: 'Begin tracking a streak. Every day, you can update (or break) your streak.',
+  aliases: ['track', 'st'],
   execute: async function (message, options, userParams) {
     if (!userParams.length){
       sendHelp(message, this);

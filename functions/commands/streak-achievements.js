@@ -2,9 +2,10 @@ const Discord = require('discord.js');
 const getStreaks = require('../utils/getStreaks');
 
 module.exports = {
-  name: 'sa',
+  name: 'streak:achievements',
   usage: 'streak:achievements',
-  hide: true,
+  hide: false,
+  aliases: ['achievements', 'sa'],
   description: 'List your achievements.',
   execute: async function (message, options, userParams, yargParams) {
     const { user } = await getStreaks(message);

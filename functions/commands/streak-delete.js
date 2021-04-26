@@ -5,10 +5,11 @@ const getStreaks = require('../utils/getStreaks');
 const listStreaks = require('../utils/listStreaks');
 
 module.exports = {
-  name: 'sd',
+  name: 'streak:delete',
   usage: 'streak:delete <name of streak to delete>',
-  hide: true,
+  hide: false,
   description: 'Delete a streak.',
+  aliases: ['delete', 'sd'],
   execute: async function (message, options, userParams, yargParams) {
     if (!userParams.length){
       sendHelp(message, this);

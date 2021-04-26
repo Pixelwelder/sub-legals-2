@@ -6,10 +6,11 @@ const admin = require('firebase-admin');
 const separator = ', '
 
 module.exports = {
-  name: 'sr',
+  name: 'streak:rename',
   usage: `streak:rename <streak name>${separator}<new name>`,
-  hide: true,
+  hide: false,
   description: 'Rename a streak.',
+  aliases: ['rename', 'sr'],
   execute: async function (message, options, userParams) {
     const split = message.content.split(separator);
     if (split.length < 2) sendHelp(message, this);

@@ -7,10 +7,11 @@ const getRemainingTime = require('../utils/getRemainingTime');
 const sendHelp = require('../utils/sendHelp');
 
 module.exports = {
-  name: 'sc',
+  name: 'streak:check-in',
   usage: 'streak:check-in <name of streak>',
-  hide: true,
+  hide: false,
   description: 'Check in on a streak for today.',
+  aliases: ['checkin', 'check-in', 'sc'],
   execute: async function (message, options, userParams) {
     if (!userParams.length){
       sendHelp(message, this);

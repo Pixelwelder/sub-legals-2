@@ -7,10 +7,13 @@ module.exports = {
   description: 'Lists the commands this drone is capable of understanding.',
   execute: (message) => {
     const { client } = message;
-    const fields = client.commands
+    const commandsByName = client.commands
       .filter(({ name }) => !['invalid'].includes(name))
       .filter(({ hide }) => !hide)
-      .map(command => ({
+      .reduce((accum, command) => ({ ...accum, [command.name]: command }), {});
+
+    const fields = Object.entries(commandsByName)
+      .map(([name, command]) => ({
         name: command.name,
         value: `"${command.usage}" - ${command.description}`
       }));
