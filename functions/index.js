@@ -3,20 +3,13 @@ const admin = require('firebase-admin');
 const Discord = require('discord.js');
 const fs = require('fs');
 const yargs = require('yargs');
-
-const serviceAccount = require('./__config__/firebase-service-account.json');
 const { botToken, prefix } = require('./__config__/discord.json');
 const client = require('./client');
 const getPoliteness = require('./utils/getPoliteness');
 const getIsProfane = require('./utils/getIsProfane');
 const react = require('./utils/react');
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  // credential: admin.credential.applicationDefault(),
-  databaseURL: 'https://species-registry.firebaseio.com',
-  storageBucket: 'species-registry.appspot.com'
-});
+require('./utils/initFirebase');
 
 const isCommand = messageStr => messageStr.startsWith(prefix);
 const executeCommand = (message, params) => {

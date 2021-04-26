@@ -6,7 +6,7 @@ const isBroken = ({ checkIns }, hours = 24) => {
   const checkIn = checkIns[checkIns.length - 1];
   return DateTime.now().diff(DateTime.fromISO(checkIn), 'hours').hours > hours;
 }
-const listStreaks = (message, user, streaks, userParams = [], yargParams = {}) => {
+const listStreaks = (message, user, yargParams = {}) => {
   const tag = message.member.user.tag.split('#')[0];
   const listAll = !!yargParams.all;
 
@@ -22,7 +22,7 @@ const listStreaks = (message, user, streaks, userParams = [], yargParams = {}) =
     .setColor('0x000000')
     .setTitle(`Streaks: ${tag}`)
     .addFields(
-      streaks
+      user.streaks
         .filter((streak) => {
           if (listAll) return true;
           if (streak.isHidden) return false;
@@ -40,7 +40,7 @@ const listStreaks = (message, user, streaks, userParams = [], yargParams = {}) =
           };
         }));
 
-  if (!streaks.length) embed.setDescription('You have no current streaks.');
+  if (!user.streaks.length) embed.setDescription('You have no current streaks.');
 
   message.channel.send(embed);
 };

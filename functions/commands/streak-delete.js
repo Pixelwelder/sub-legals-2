@@ -21,7 +21,7 @@ module.exports = {
 
     if (!toDelete) {
       message.reply(`you don't have a streak called "${name}".`);
-      listStreaks(message, user, user.streaks);
+      listStreaks(message, user);
       return;
     }
 
@@ -43,6 +43,6 @@ module.exports = {
     await userDoc.ref.update(user);
 
     message.reply(reply);
-    listStreaks(message, user, user.streaks);
+    listStreaks(message, user);
   }
 }

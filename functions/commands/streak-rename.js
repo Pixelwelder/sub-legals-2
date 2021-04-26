@@ -23,7 +23,7 @@ module.exports = {
     const streak = streaksByName[oldName.toLowerCase()];
     if (!streak) {
       message.reply(`you don't have a streak named "${oldName}."`);
-      listStreaks(message, user, user.streaks, userParams);
+      listStreaks(message, user);
       return;
     }
 
@@ -35,9 +35,9 @@ module.exports = {
     streak.displayName = newName;
     await userDoc.ref.update(user);
     message.reply(`you have renamed "${oldName}" to "${newName}."`);
-    listStreaks(message, user, user.streaks, userParams);
+    listStreaks(message, user);
 
     // message.reply('These are your current streaks.');
-    // listStreaks(message, user, streaks, userParams);
+    // listStreaks(message, user);
   }
 };

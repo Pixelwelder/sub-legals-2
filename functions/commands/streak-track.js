@@ -31,12 +31,12 @@ module.exports = {
         currentStreak.checkIns.push(DateTime.now().toISO());
         await userDoc.ref.update(user);
         message.reply(`you've restored a streak: once again tracking "${name}".`)
-        listStreaks(message, user, user.streaks);
+        listStreaks(message, user);
         return;
       } else {
         // Nope. The user has made a mistake.
         message.reply(`you already have a streak called ${name}.`);
-        listStreaks(message, user, user.streaks);
+        listStreaks(message, user);
         return;
       }
     }
@@ -60,6 +60,6 @@ module.exports = {
     user.streaks.push(streak);
     await userDoc.ref.update(user);
 
-    listStreaks(message, user, user.streaks);
+    listStreaks(message, user);
   }
 };
