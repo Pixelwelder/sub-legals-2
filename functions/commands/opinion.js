@@ -1,4 +1,5 @@
 const admin = require('firebase-admin');
+const newUser = require('../utils/newUser');
 
 const emojis = [ // 0-9
   '😡', '😠', '☹️', '🙁', '😕', '😐', '🙂', '😊', '🥰', '😍'
@@ -19,14 +20,9 @@ module.exports = {
       });
 
       const userDocs = await Promise.all(promises);
-      const users = userDocs.map(user => {
-        if (user.exists) {
-          return user.data();
-        } else {
-          return { opinion: 5 };
-        }
+      return userDocs.map(user => {
+        return user.exists ? user.data() : newUser();
       });
-      return users;
     });
 
     const msg = users.reduce((accum, user) => {
@@ -35,14 +31,6 @@ module.exports = {
       return `${accum} ${emoji}`;
     }, '');
 
-    // const doc = await admin.firestore().collection('discord_users').doc(message.author.id).get();
-    // let opinion = 5;
-    // if (doc.exists) {
-    //   ({ opinion } = doc.data());
-    // }
-    //
-    // if (politeness > 0) opinion += 1;
-    // const emoji = emojis[Math.floor(opinion)];
     message.channel.send(msg);
   }
 };

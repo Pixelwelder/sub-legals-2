@@ -58,7 +58,7 @@ module.exports = {
     }
 
     user.streaks.push(streak);
-    await userDoc.ref.update(user);
+    await userDoc.ref.set(user);
 
     listStreaks(message, user);
   }
