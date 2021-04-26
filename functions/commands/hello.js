@@ -5,8 +5,11 @@ const newUser = require('../utils/newUser');
 module.exports = {
   name: 'hello',
   usage: 'hello',
-  description: 'Says hello to this drone.',
-  aliases: ['hi', 'gm', 'hey', 'morning', 'evening', 'afternoon', 'night', 'howdy', 'wassup', 'sup', 'yo', 'hullo'],
+  description: 'Say hello to this drone.',
+  aliases: [
+    'hi', 'gm', 'hey', 'morning', 'evening', 'afternoon', 'night', 'howdy', 'wassup', 'sup', 'yo', 'hullo', 'greetings',
+    'goodbye'
+  ],
   execute: async (message) => {
     message.channel.send('👋');
     if (!getIsProfane(message.content)) {
@@ -14,6 +17,7 @@ module.exports = {
       const userRef = admin.firestore().collection('discord_users').doc(id);
       const userDoc = await userRef.get();
       const user = userDoc.exists ? userDoc.data() : newUser();
+      await userRef.set({ ...user, opinion: user.opinion + 1 });
     }
   }
 };
