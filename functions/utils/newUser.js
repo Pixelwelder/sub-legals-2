@@ -1,6 +1,6 @@
 module.exports = (overrides) => {
   return {
-    opinion: 5,
+    opinion: 4,
     achievements: [],
     streaks: [],
     ...overrides

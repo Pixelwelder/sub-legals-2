@@ -17,6 +17,7 @@
     "discord.js": "^12.5.3",
     "firebase-admin": "^9.2.0",
     "firebase-functions": "^3.11.0",
+    "googleapis": "^39.2.0",
     "luxon": "^1.26.0",
     "yargs": "^16.2.0"
   },

@@ -1,9 +1,6 @@
 const admin = require('firebase-admin');
 const newUser = require('../utils/newUser');
-
-const emojis = [ // 0-9
-  '😡', '😠', '☹️', '🙁', '😕', '😐', '🙂', '😊', '🥰', '😍'
-];
+const getOpinionImage = require('../utils/getOpinionImage');
 
 module.exports = {
   name: 'opinion',
@@ -26,7 +23,7 @@ module.exports = {
     });
 
     const msg = users.reduce((accum, user) => {
-      const emoji = emojis[Math.floor(user.opinion)];
+      const emoji = getOpinionImage(user.opinion);
 
       return `${accum} ${emoji}`;
     }, '');
