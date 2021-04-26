@@ -17,13 +17,13 @@ module.exports = {
       return;
     }
 
-    const { userDoc, streaks, streaksByName, user } = await getStreaks(message);
+    const { userDoc, user, streaksByName } = await getStreaks(message);
     const { name, args } = getStreakArgs(message);
     const toCheckIn = streaksByName[name.toLowerCase()];
 
     if (!toCheckIn) {
       message.reply(`you don't have a streak called "${name}".`);
-      listStreaks(message, user, streaks);
+      listStreaks(message, user, user.streaks);
       return;
     }
 
@@ -50,7 +50,7 @@ module.exports = {
       toCheckIn.checkIns.push(nowStamp);
 
       await userDoc.ref.update(user);
-      listStreaks(message, user, streaks);
+      listStreaks(message, user, user.streaks);
 
       // const diff = new admin.firestore.Timestamp().compareTo(toCheckIn.lastCheckIn);
       // console.log('diff', diff);

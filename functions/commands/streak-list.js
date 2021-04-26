@@ -7,9 +7,9 @@ module.exports = {
   hide: true,
   description: 'List all your current streaks.',
   execute: async function (message, options, userParams, yargParams) {
-    const { userDoc, streaks, streaksByName, user } = await getStreaks(message);
+    const { user } = await getStreaks(message);
 
     message.reply('these are your current streaks.');
-    listStreaks(message, user, streaks, userParams, yargParams);
+    listStreaks(message, user, user.streaks, userParams, yargParams);
   }
 };

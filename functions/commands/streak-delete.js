@@ -15,16 +15,18 @@ module.exports = {
       return;
     }
 
-    const { name, args } = getStreakArgs(message);
-    const { userDoc, streaks, streaksByName, user } = await getStreaks(message);
+    const { name } = getStreakArgs(message);
+    const { userDoc, user, streaksByName } = await getStreaks(message);
     const toDelete = streaksByName[name.toLowerCase()];
 
     if (!toDelete) {
       message.reply(`you don't have a streak called "${name}".`);
-      listStreaks(message, user, streaks);
+      listStreaks(message, user, user.streaks);
       return;
     }
 
+
+    let reply = `streak "${name}" has been deleted.`;
     if (toDelete.isHidden) {
       const { forever } = yargParams;
       if (forever) {
@@ -34,12 +36,13 @@ module.exports = {
         return;
       }
     } else {
+      reply += ' You can track it again to restore it.';
       toDelete.isHidden = true;
     }
 
     await userDoc.ref.update(user);
 
-    message.reply(`streak "${name}" has been deleted. You can track it again to restore it.`);
-    listStreaks(message, user, streaks);
+    message.reply(reply);
+    listStreaks(message, user, user.streaks);
   }
 }

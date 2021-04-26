@@ -8,6 +8,11 @@ const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('
 for (const fileName of commandFiles) {
   const command = require(`./commands/${fileName}`);
   client.commands.set(command.name, command);
+  if (command.aliases) {
+    command.aliases.forEach(alias => {
+      client.commands.set(alias, command);
+    });
+  }
 }
 
 module.exports = client;

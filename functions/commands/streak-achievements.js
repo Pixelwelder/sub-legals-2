@@ -7,7 +7,7 @@ module.exports = {
   hide: true,
   description: 'List your achievements.',
   execute: async function (message, options, userParams, yargParams) {
-    const { userDoc, streaks, streaksByName, user } = await getStreaks(message);
+    const { user } = await getStreaks(message);
     const tag = message.member.user.tag.split('#')[0];
     if (user.achievements.length) {
       const embed = new Discord.MessageEmbed()

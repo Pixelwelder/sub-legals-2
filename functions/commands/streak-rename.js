@@ -18,12 +18,12 @@ module.exports = {
     const newName = split[1].trim();
     console.log('renaming', oldName, newName);
 
-    const { userDoc, streaks, streaksByName, user } = await getStreaks(message);
+    const { userDoc, user, streaksByName } = await getStreaks(message);
 
     const streak = streaksByName[oldName.toLowerCase()];
     if (!streak) {
       message.reply(`you don't have a streak named "${oldName}."`);
-      listStreaks(message, user, streaks, userParams);
+      listStreaks(message, user, user.streaks, userParams);
       return;
     }
 
@@ -35,7 +35,7 @@ module.exports = {
     streak.displayName = newName;
     await userDoc.ref.update(user);
     message.reply(`you have renamed "${oldName}" to "${newName}."`);
-    listStreaks(message, user, streaks, userParams);
+    listStreaks(message, user, user.streaks, userParams);
 
     // message.reply('These are your current streaks.');
     // listStreaks(message, user, streaks, userParams);

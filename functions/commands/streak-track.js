@@ -19,7 +19,7 @@ module.exports = {
     }
 
     const { name, args } = getStreakArgs(message);
-    const { userDoc, streaks, streaksByName, user } = await getStreaks(message);
+    const { userDoc, user, streaksByName } = await getStreaks(message);
     const currentStreak = streaksByName[name.toLowerCase()];
 
     if (currentStreak) {
@@ -31,12 +31,12 @@ module.exports = {
         currentStreak.checkIns.push(DateTime.now().toISO());
         await userDoc.ref.update(user);
         message.reply(`you've restored a streak: once again tracking "${name}".`)
-        listStreaks(message, user, streaks);
+        listStreaks(message, user, user.streaks);
         return;
       } else {
         // Nope. The user has made a mistake.
         message.reply(`you already have a streak called ${name}.`);
-        listStreaks(message, user, streaks);
+        listStreaks(message, user, user.streaks);
         return;
       }
     }
@@ -48,7 +48,7 @@ module.exports = {
     });
 
     // It's their first streak.
-    if (!streaks.length) {
+    if (!user.streaks.length) {
       if (!user.achievements) user.achievements = [];
       user.achievements.push(newAchievement({
         name: 'streaker',
@@ -57,9 +57,9 @@ module.exports = {
       }));
     }
 
-    streaks.push(streak);
-    await userDoc.ref.update({ ...user, streaks });
+    user.streaks.push(streak);
+    await userDoc.ref.update(user);
 
-    listStreaks(message, user, streaks);
+    listStreaks(message, user, user.streaks);
   }
 };
