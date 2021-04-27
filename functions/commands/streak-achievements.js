@@ -13,7 +13,7 @@ module.exports = {
     if (user.achievements.length) {
       const embed = new Discord.MessageEmbed()
         .setColor('0x000000')
-        .setTitle(`Streaks: ${tag}`)
+        .setTitle(`Achievements: ${tag}`)
         .addFields(
           user.achievements.map(({ displayName, description }) => ({ name: displayName, value: description }))
         );

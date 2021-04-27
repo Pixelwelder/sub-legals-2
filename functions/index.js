@@ -41,7 +41,7 @@ client.once('ready', () => {
 });
 
 client.on('message', async (message) => {
-  console.log('message', message.content);
+  console.log(message.author.id, ':', message.content);
   if (message.author.id === client.user.id) return;
 
   react(message);

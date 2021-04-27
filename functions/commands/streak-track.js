@@ -21,6 +21,14 @@ module.exports = {
 
     const { name, args } = getStreakArgs(message);
     const { userDoc, user, streaksByName } = await getStreaks(message);
+
+    // Are we over the limit?
+    const num = user.streaks.reduce((accum, { isHidden }) => isHidden ? accum : accum + 1, 0);
+    if (num >= 5) {
+      message.reply(`you've already got enough streaks. Please delete one first.`)
+      return;
+    }
+
     const currentStreak = streaksByName[name.toLowerCase()];
 
     if (currentStreak) {

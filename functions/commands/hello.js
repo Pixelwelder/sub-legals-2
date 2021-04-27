@@ -10,7 +10,7 @@ module.exports = {
     'hi', 'gm', 'hey', 'morning', 'evening', 'afternoon', 'night', 'howdy', 'wassup', 'sup', 'yo', 'hullo', 'greetings',
     'goodbye'
   ],
-  execute: async (message) => {
+  execute: async function(message) {
     message.channel.send('👋');
     if (!getIsProfane(message.content)) {
       const { id } = message.author;
