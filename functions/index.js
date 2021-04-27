@@ -35,7 +35,8 @@ const executeCommand = (message, params) => {
 // TODO Achievement: all streaks in one day
 // TODO Change streak name.
 // TODO Give achievements via a command (from me).
-
+// TODO Admin request channel.
+// TODO New members must prove they're not Human.
 client.once('ready', () => {
   console.log(`${client.user.id} is ready`);
 });

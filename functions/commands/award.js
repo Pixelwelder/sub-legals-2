@@ -1,6 +1,7 @@
 const admin = require('firebase-admin');
 const sendHelp = require('../utils/sendHelp');
 const newAchievement = require('../utils/newAchievement');
+const hasAchievement = require('../utils/hasAchievement');
 
 const adminId = '685513488411525164';
 const awards = {
@@ -44,9 +45,7 @@ module.exports = {
     }
 
     const user = userDoc.data();
-    const achievementsByName = user.achievements
-      .reduce((accum, ach) => ({ ...accum, [ach.displayName.toLowerCase()]: ach}), {});
-    if (achievementsByName[awardName.toLowerCase()]) {
+    if (hasAchievement(user, awardName)) {
       message.react('🏆');
       return;
     }

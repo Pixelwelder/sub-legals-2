@@ -6,6 +6,7 @@ const getStreaks = require('../utils/getStreaks');
 const listStreaks = require('../utils/listStreaks');
 const newStreak = require('../utils/newStreak');
 const newAchievement = require('../utils/newAchievement');
+const hasAchievement = require('../utils/hasAchievement');
 
 module.exports = {
   name: 'streak:track',
@@ -57,10 +58,9 @@ module.exports = {
     });
 
     // It's their first streak.
-    if (!user.streaks.length) {
+    if (!user.streaks.length && !hasAchievement('Streaker')) {
       if (!user.achievements) user.achievements = [];
       user.achievements.push(newAchievement({
-        name: 'streaker',
         displayName: 'Streaker',
         description: 'Created a first streak.'
       }));

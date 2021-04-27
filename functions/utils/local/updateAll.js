@@ -1,9 +1,10 @@
 const admin = require('firebase-admin');
 const newUser = require('../newUser');
+const { TLHDiscordId } = require ('../../constants');
 
 require('../initFirebase');
 
-const go = async () => {
+const updateToLatest = async () => {
   const userDocs = await admin.firestore().collection('discord_users').get();
   const promises = userDocs.docs.map((doc) => {
     const currentUser = doc.data();
@@ -15,4 +16,18 @@ const go = async () => {
   console.log(`${userDocs.size} users updated.`);
 };
 
-go();
+const move = async () => {
+  const newDoc = admin.firestore().collection('discord_users').doc(TLHDiscordId);
+  await newDoc.set({ id: TLHDiscordId });
+
+  const userDocs = await admin.firestore().collection('discord_users').get();
+  const promises = userDocs.docs.map((doc) => {
+    const currentUser = doc.data();
+    return newDoc.collection('users').doc(doc.id).set(currentUser);
+  });
+
+  await Promise.all(promises);
+  console.log(`moved ${promises.length} users`);
+};
+
+move();
