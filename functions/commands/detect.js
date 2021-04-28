@@ -9,11 +9,10 @@ const max = 7;
 let underway = false;
 let count = 0;
 module.exports = {
-  name: '_detect',
-  usage: 'award <user> --award <award name>',
+  name: 'detect',
+  usage: 'detect',
   description: 'Detect a human.',
   aliases: [],
-  hide: true,
   // TODO This will notify people from ALL servers.
   execute: async function (message, options, userParams, yargParams) {
     if (underway) {
@@ -21,14 +20,16 @@ module.exports = {
       return;
     }
 
+    console.log(yargParams);
     let lastUser;
+    let lastUserDoc;
 
     underway = true;
     const userDocs = await admin.firestore().collection('discord_users').get();
     const getRandomUser = async () => {
       const userDoc = userDocs.docs[Math.floor(userDocs.size * Math.random())];
       const user = await message.client.users.fetch(userDoc.id);
-      return user;
+      return { user, userDoc };
     }
 
     const search = async () => {
@@ -42,15 +43,20 @@ module.exports = {
         return;
       }
 
-      lastUser = await getRandomUser();
+      ({ user: lastUser, userDoc: lastUserDoc } = await getRandomUser());
       message.channel.send(`🔍 ${lastUser.username}...`);
       count ++;
       setTimeout(search, time * 1000);
     };
 
-    const find = () => {
+    const find = async () => {
       count = 0;
       underway = false;
+
+      const user = lastUserDoc.data();
+      user.opinion = Math.max(0, user.opinion - (yargParams.extremePrejudice ? 2 : 1));
+      await lastUserDoc.ref.update(user);
+
       const userString = yargParams.tag ? `<@${lastUser.id}>` : lastUser.username;
       message.channel.send(`🚨<:human:821874570448601118> ${userString} <:human:821874570448601118>🚨`);
     };
