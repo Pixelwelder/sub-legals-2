@@ -1,15 +1,19 @@
 const admin = require('firebase-admin');
 const newUser = require('../utils/newUser');
+const fetchUser = require('../utils/fetchUser');
 
 const getStreaks = async (message) => {
   const { id } = message.author;
-  const userRef = admin.firestore().collection('discord_users').doc(id);
-  const userDoc = await userRef.get();
-  const user = userDoc.exists ? userDoc.data() : newUser();
-  const streaksByName = {};
-  user.streaks.forEach(streak => {
-    streaksByName[streak.displayName.toLowerCase()] = streak;
-  })
+  const { userDoc, user } = await fetchUser(id);
+
+  const streaksByName = user.streaks
+    .reduce((accum, streak) => ({
+      ...accum, [streak.displayName.toLowerCase()]: streak
+    }), {});
+
+  // user.streaks.forEach(streak => {
+  //   streaksByName[streak.displayName.toLowerCase()] = streak;
+  // });
 
   return { userDoc, user, streaksByName };
 };

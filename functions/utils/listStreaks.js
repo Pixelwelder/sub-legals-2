@@ -2,9 +2,9 @@ const Discord = require('discord.js');
 const { DateTime } = require('luxon');
 const getRemainingTime = require('../utils/getRemainingTime');
 
-const isBroken = ({ checkIns }, hours = 24) => {
+const isBroken = ({ checkIns }, hours = 24, grace = 12) => {
   const checkIn = checkIns[checkIns.length - 1];
-  return DateTime.now().diff(DateTime.fromISO(checkIn), 'hours').hours > hours;
+  return DateTime.now().diff(DateTime.fromISO(checkIn), 'hours').hours > (hours + grace);
 }
 const listStreaks = (message, user, yargParams = {}) => {
   const tag = message.member.user.tag.split('#')[0];
@@ -15,7 +15,7 @@ const listStreaks = (message, user, yargParams = {}) => {
     const { checkIns } = streak;
     const brokenMessage = 'Broken';
     const checkIn = checkIns[checkIns.length - 1];
-    const rem = getRemainingTime(checkIn, 24, brokenMessage)
+    const rem = getRemainingTime({ last: checkIn, message: brokenMessage })
     return rem.str;
   }
   // 836294852416241774

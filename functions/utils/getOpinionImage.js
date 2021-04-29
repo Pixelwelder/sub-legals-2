@@ -15,5 +15,5 @@ module.exports = (opinion) => {
     '<:opinion08:836294422593273966>',
     '<:opinion09:836294422345023570>'
   ];
-  return tlhEmojis[Math.floor(opinion)];
+  return tlhEmojis[Math.min(9, Math.floor(opinion))];
 };

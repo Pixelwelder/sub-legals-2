@@ -14,6 +14,10 @@ module.exports = {
       return;
     }
 
+    if (split[split.length - 1].toLowerCase() === 'please') {
+      split.pop();
+    }
+
     split.shift();
     const subject = split.join('-').toLowerCase();
 

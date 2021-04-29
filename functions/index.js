@@ -37,6 +37,7 @@ const executeCommand = (message, params) => {
 // TODO Give achievements via a command (from me).
 // TODO Admin request channel.
 // TODO New members must prove they're not Human.
+// TODO Changing a streak's name to a deleted streak's name and then undeleting hidden streak gives two streaks
 client.once('ready', () => {
   console.log(`${client.user.id} is ready`);
 });

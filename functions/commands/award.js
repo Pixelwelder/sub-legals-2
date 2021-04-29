@@ -2,6 +2,7 @@ const admin = require('firebase-admin');
 const sendHelp = require('../utils/sendHelp');
 const newAchievement = require('../utils/newAchievement');
 const hasAchievement = require('../utils/hasAchievement');
+const fetchUser = require('../utils/fetchUser');
 
 const adminId = '685513488411525164';
 const awards = {
@@ -37,14 +38,13 @@ module.exports = {
       return;
     }
 
-    const userDoc = await admin.firestore().collection('discord_users').doc(userId).get();
+    const { userDoc, user } = await fetchUser(message.author.id);
     if (!userDoc.exists) {
       message.react('❌');
       message.react('👤');
       return;
     }
 
-    const user = userDoc.data();
     if (hasAchievement(user, awardName)) {
       message.react('🏆');
       return;

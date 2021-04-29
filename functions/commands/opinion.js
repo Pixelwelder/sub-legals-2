@@ -1,5 +1,6 @@
 const admin = require('firebase-admin');
-const newUser = require('../utils/newUser');
+const newUser = require('../utils/newUser')
+const fixUser = require('../utils/fixUser');
 const getOpinionImage = require('../utils/getOpinionImage');
 
 module.exports = {
@@ -17,12 +18,14 @@ module.exports = {
 
       const userDocs = await Promise.all(promises);
       return userDocs.map(user => {
-        return user.exists ? user.data() : newUser();
+        const userObj = user.exists ? user.data() : newUser();
+        fixUser(userObj);
+        return userObj;
       });
     });
 
     const msg = users.reduce((accum, user) => {
-      const emoji = getOpinionImage(user.opinion);
+      const emoji = getOpinionImage(user.opinion + (politeness > 0 ? 1 : 0));
 
       return `${accum} ${emoji}`;
     }, '');

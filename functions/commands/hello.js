@@ -1,6 +1,6 @@
 const admin = require('firebase-admin');
 const getIsProfane = require('../utils/getIsProfane');
-const newUser = require('../utils/newUser');
+const fetchUser = require('../utils/fetchUser');
 
 module.exports = {
   name: 'hello',
@@ -14,10 +14,8 @@ module.exports = {
     message.channel.send('👋');
     if (!getIsProfane(message.content)) {
       const { id } = message.author;
-      const userRef = admin.firestore().collection('discord_users').doc(id);
-      const userDoc = await userRef.get();
-      const user = userDoc.exists ? userDoc.data() : newUser();
-      await userRef.set({ ...user, opinion: user.opinion + 1 });
+      const { user, userDoc } = await fetchUser(id);
+      await userDoc.ref.set({ ...user, opinion: user.opinion + 1 });
     }
   }
 };

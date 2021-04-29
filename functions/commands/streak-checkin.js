@@ -32,7 +32,7 @@ module.exports = {
       const now = DateTime.now();
       const nowStamp = now.toISO();
       const lastCheckInStamp = toCheckIn.checkIns[toCheckIn.checkIns.length - 1];
-      const { isGood } = getRemainingTime(lastCheckInStamp);
+      const { isGood } = getRemainingTime({ last: lastCheckInStamp });
 
       if (!isGood) {
         // Oops.
