@@ -1,4 +1,5 @@
 const sendHelp = require('../utils/sendHelp');
+const channels = require('../utils/channels');
 
 module.exports = {
   name: 'sayy',
@@ -11,6 +12,8 @@ module.exports = {
 
     const split = message.content.split(' ');
     split.shift();
-    message.channel.send(split.join(' '));
+
+    const channel = channels.getBotChannel();
+    channel.send(split.join(' '));
   }
 };

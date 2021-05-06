@@ -30,4 +30,4 @@ const move = async () => {
   console.log(`moved ${promises.length} users`);
 };
 
-move();
+updateToLatest();
