@@ -2,6 +2,7 @@ const Discord = require('discord.js');
 const { getRank, getRankInContext } = require('../utils/rank');
 const xp = require('../utils/xp');
 
+// Tells the user their rank.
 module.exports = {
   name: 'rank',
   usage: 'rank',
