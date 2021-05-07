@@ -23,6 +23,7 @@ module.exports = {
       .setDescription('Hello! I am a Network Drone. I can understand the following commands:')
       .addFields(fields);
 
-    message.channel.send(embed);
+    message.author.send(embed);
+    message.reply('I have DMed you all my commands.')
   }
 };

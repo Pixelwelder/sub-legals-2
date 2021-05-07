@@ -7,7 +7,7 @@ module.exports = {
   usage: 'rank',
   description: 'Tells you your rank.',
   aliases: [],
-  hide: true,
+  hide: false,
   execute: async function (message, options, userParams, yargParams) {
     const { id } = message.author;
     const { rank, total } = await getRank(id);

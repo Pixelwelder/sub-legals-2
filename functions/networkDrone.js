@@ -28,6 +28,56 @@ const executeCommand = (message, params) => {
   }
 };
 
+// messageUpdate
+const onMessage = async (message) => {
+  console.log(message.author.id, ':', message.content);
+  if (message.author.id === client.user.id) return;
+
+  react(message);
+  const isProfane = getIsProfane(message.content);
+  let politeness = 0;
+
+  // Ignore any non-commands.
+  if (isCommand(message.content)) {
+    politeness = getPoliteness(message.content)
+    if (!isProfane && politeness < 0) message.react('❌');
+    if (politeness > 0) message.react('❤');
+
+    // const isMentioned = message.mentions.has(bot)
+    // We have a genuine command.
+    executeCommand(message, { politeness });
+  }
+
+  if (isProfane) message.react('😮');
+
+  // Now record.
+  // TODO Move.
+  let user = { opinion: 5 };
+  const ref = admin.firestore().collection('discord_users').doc(message.author.id);
+  const doc = await ref.get();
+  if (doc.exists) {
+    user = doc.data();
+  }
+
+  let delta = 0;
+  if (politeness < 0) delta -= 1;
+  if (politeness > 0) delta += 1;
+  if (isProfane) delta -= 2;
+  let newOpinion = user.opinion + delta;
+  newOpinion = Math.max(0, newOpinion);
+  newOpinion = Math.min(9, newOpinion);
+
+  if (user.opinion !== newOpinion) {
+    console.log(`opinion changed from ${user.opinion} to ${newOpinion} (${delta})`);
+    await ref.set({
+      ...user,
+      opinion: newOpinion
+    });
+  }
+
+  rank.update(message)
+};
+
 const initDiscord = () => {
   client.once('ready', () => {
     const message = `${client.user.id} is ready`;
@@ -36,53 +86,12 @@ const initDiscord = () => {
     console.log(message);
   });
 
-  client.on('message', async (message) => {
-    console.log(message.author.id, ':', message.content);
-    if (message.author.id === client.user.id) return;
+  client.on('message', (message) => {
+    onMessage(message);
+  });
 
-    react(message);
-    const isProfane = getIsProfane(message.content);
-    let politeness = 0;
-
-    // Ignore any non-commands.
-    if (isCommand(message.content)) {
-      politeness = getPoliteness(message.content)
-      if (!isProfane && politeness < 0) message.react('❌');
-      if (politeness > 0) message.react('❤');
-
-      // const isMentioned = message.mentions.has(bot)
-      // We have a genuine command.
-      executeCommand(message, { politeness });
-    }
-
-    if (isProfane) message.react('😮');
-
-    // Now record.
-    // TODO Move.
-    let user = { opinion: 5 };
-    const ref = admin.firestore().collection('discord_users').doc(message.author.id);
-    const doc = await ref.get();
-    if (doc.exists) {
-      user = doc.data();
-    }
-
-    let delta = 0;
-    if (politeness < 0) delta -= 1;
-    if (politeness > 0) delta += 1;
-    if (isProfane) delta -= 2;
-    let newOpinion = user.opinion + delta;
-    newOpinion = Math.max(0, newOpinion);
-    newOpinion = Math.min(9, newOpinion);
-
-    if (user.opinion !== newOpinion) {
-      console.log(`opinion changed from ${user.opinion} to ${newOpinion} (${delta})`);
-      await ref.set({
-        ...user,
-        opinion: newOpinion
-      });
-    }
-
-    rank.update(message)
+  client.on('messageUpdate', (oldMessage, newMessage) => {
+    onMessage(newMessage);
   });
 
   client.login(botToken);
