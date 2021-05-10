@@ -3,7 +3,7 @@ const admin = require('firebase-admin');
 const Discord = require('discord.js');
 const fs = require('fs');
 const yargs = require('yargs');
-const { botToken, prefix } = require('./__config__/bot1.json');
+const { botToken, prefix } = require('./settings');
 const client = require('./client');
 const getPoliteness = require('./utils/getPoliteness');
 const getIsProfane = require('./utils/getIsProfane');
@@ -29,8 +29,8 @@ const executeCommand = (message, params) => {
 };
 
 // messageUpdate
-const onMessage = async (message) => {
-  console.log(message.author.id, ':', message.content);
+const onMessage = async (message, type) => {
+  console.log(message.author.id, ':', message.content, type);
   if (message.author.id === client.user.id) return;
 
   react(message);
@@ -75,7 +75,7 @@ const onMessage = async (message) => {
     });
   }
 
-  rank.update(message)
+  if (type === 'message') rank.update(message)
 };
 
 const initDiscord = () => {
@@ -87,11 +87,11 @@ const initDiscord = () => {
   });
 
   client.on('message', (message) => {
-    onMessage(message);
+    onMessage(message, 'message');
   });
 
   client.on('messageUpdate', (oldMessage, newMessage) => {
-    onMessage(newMessage);
+    onMessage(newMessage, 'messageUpdate');
   });
 
   client.login(botToken);

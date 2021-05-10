@@ -1,3 +1,3 @@
-const { prefix } = require('../__config__/bot1.json');
+const { prefix } = require('../settings');
 
 module.exports = messageStr => messageStr.startsWith(prefix);

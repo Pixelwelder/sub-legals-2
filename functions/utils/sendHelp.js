@@ -1,5 +1,5 @@
 const Discord = require('discord.js');
-const { prefix } = require('../__config__/bot1.json');
+const { prefix } = require('./settings');
 
 module.exports = (message, { name, usage, description }) => {
   const help = new Discord.MessageEmbed()
