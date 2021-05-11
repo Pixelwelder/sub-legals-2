@@ -37,11 +37,18 @@ const initialize = async () => {
  * When a user sends a message, we add a point.
  * TODO Add additional points for politeness.
  */
-const update = async (message) => {
+const update = async (message, _xpToAdd) => {
   // Don't respond to commands.
   if (isCommand(message.content)) return;
 
+  console.log('rank.update');
+
+  // Don't respond to bots.
+  // if (message.author.bot) return;
+
   const { id } = message.author;
+  const xpToAdd = _xpToAdd || message.content.length;
+
   if (!ranksById[id]) {
     const rankUser = newRankUser({ id });
     ranks.push(rankUser)
@@ -50,7 +57,7 @@ const update = async (message) => {
   const rankUser = ranksById[id];
   const oldXP = rankUser.xp;
   rankUser.numMessages ++;
-  rankUser.xp += message.content.length;
+  rankUser.xp += xpToAdd;
   ranks.sort((a, b) => {
     // Sort by xp, then numMessages, and then by ID.
     if (a.xp < b.xp) return 1;
@@ -62,10 +69,13 @@ const update = async (message) => {
 
   await ranksDoc.ref.update({ all: ranks });
 
-  const tag = message.member.user.tag.split('#')[0];
-  const channel = channels.getBotChannel();
   if (xp.toTier(rankUser.xp) > xp.toTier(oldXP)) {
-    channel.send(`${tag} has ascended to Tier ${xp.toTier(rankUser.xp)}.`);
+    // const tag = message.member.user.tag.split('#')[0];
+    const tag = `<@${message.author.id}>`;
+    const channel = channels.getBotChannel();
+    if (channel) {
+      channel.send(`${tag} has ascended to Tier ${xp.toTier(rankUser.xp)}.`);
+    }
   }
 };
 

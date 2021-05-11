@@ -3,7 +3,7 @@ const admin = require('firebase-admin');
 const Discord = require('discord.js');
 const fs = require('fs');
 const yargs = require('yargs');
-const { botToken, prefix } = require('./settings');
+const { botToken, prefix, adminId } = require('./settings');
 const client = require('./client');
 const getPoliteness = require('./utils/getPoliteness');
 const getIsProfane = require('./utils/getIsProfane');
@@ -92,6 +92,24 @@ const initDiscord = () => {
 
   client.on('messageUpdate', (oldMessage, newMessage) => {
     onMessage(newMessage, 'messageUpdate');
+  });
+
+  client.on('messageReactionAdd', async (reaction, user) => {
+    if (reaction.partial) {
+      try {
+        await reaction.fetch();
+      } catch (error) {
+        console.error('Could not fetch message', error);
+        return;
+      }
+    }
+    // <:scanbotInspect:821873187947675688>
+    console.log(user.id, );
+    if (user.id === adminId && reaction.emoji.name === 'scanbotInspect') {
+      reaction.message.channel.send(`The Network appreciates your contribution, <@${reaction.message.author.id}>.`);
+      rank.update(reaction.message, 1000);
+    }
+    // console.log(reaction.message.content, reaction.message.author, reaction.emoji);
   });
 
   client.login(botToken);
