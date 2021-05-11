@@ -44,7 +44,7 @@ const update = async (message, _xpToAdd) => {
   console.log('rank.update');
 
   // Don't respond to bots.
-  // if (message.author.bot) return;
+  if (message.author.bot) return;
 
   const { id } = message.author;
   const xpToAdd = _xpToAdd || message.content.length;
