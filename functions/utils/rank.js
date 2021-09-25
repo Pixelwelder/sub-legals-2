@@ -48,8 +48,9 @@ const update = async (message, _xpToAdd) => {
 
   const { id } = message.author;
   const xpToAdd = _xpToAdd || message.content.length;
+  let isNew = Boolean(!ranksById[id]);
 
-  if (!ranksById[id]) {
+  if (isNew) {
     const rankUser = newRankUser({ id });
     ranks.push(rankUser)
     ranksById[id] = rankUser;
@@ -69,7 +70,7 @@ const update = async (message, _xpToAdd) => {
 
   await ranksDoc.ref.update({ all: ranks });
 
-  if (xp.toTier(rankUser.xp) > xp.toTier(oldXP)) {
+  if (xp.toTier(rankUser.xp) > xp.toTier(oldXP) || isNew) {
     // const tag = message.member.user.tag.split('#')[0];
     const tag = `<@${message.author.id}>`;
     const channel = channels.getBotChannel();

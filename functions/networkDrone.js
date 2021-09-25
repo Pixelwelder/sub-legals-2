@@ -104,7 +104,7 @@ const initDiscord = () => {
       }
     }
     // <:scanbotInspect:821873187947675688>
-    console.log(user.id, );
+    console.log(user.id);
     if (user.id === adminId && reaction.emoji.name === 'scanbotInspect') {
       reaction.message.channel.send(`The Network appreciates your contribution, <@${reaction.message.author.id}>.`);
       rank.update(reaction.message, 1000);
