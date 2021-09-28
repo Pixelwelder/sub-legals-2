@@ -1,4 +1,4 @@
-const admin = require('firebase-admin');
+const { SlashCommandBuilder } = require('@discordjs/builders');
 const getIsProfane = require('../utils/getIsProfane');
 const fetchUser = require('../utils/fetchUser');
 

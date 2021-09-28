@@ -1,9 +1,10 @@
 // const functions = require("firebase-functions");
 const admin = require('firebase-admin');
-const Discord = require('discord.js');
-const fs = require('fs');
 const yargs = require('yargs');
-const { botToken, prefix, adminId } = require('./settings');
+const { REST } = require('@discordjs/rest');
+const { Routes } = require('discord-api-types/v9');
+
+const { botToken, prefix, adminId, adminGuildId, appId } = require('./settings');
 const client = require('./client');
 const getPoliteness = require('./utils/getPoliteness');
 const getIsProfane = require('./utils/getIsProfane');
