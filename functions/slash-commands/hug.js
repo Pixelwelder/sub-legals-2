@@ -1,5 +1,4 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const sendHelp = require('../utils/sendHelp');
 const { getClient } = require('../client-v2');
 
 module.exports = {

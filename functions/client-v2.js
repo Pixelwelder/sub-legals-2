@@ -1,11 +1,13 @@
 const { Client, Collection, Intents } = require('discord.js');
 const fs = require('fs');
+const init = require('./adventureDroneInit');
 
 let client;
 
 const getClient = () => {
   if (!client) {
     client = new Client({ intents: [Intents.FLAGS.GUILDS] });
+
     const commandsDir = './slash-commands';
     const commandFiles = fs.readdirSync(commandsDir).filter(file => file.endsWith('.js'));
 
