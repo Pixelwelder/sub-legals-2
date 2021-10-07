@@ -1,6 +1,7 @@
 const { Client, Collection, Intents } = require('discord.js');
 const fs = require('fs');
 const init = require('./adventureDroneInit');
+const { adminGuildId } = require('./settings');
 
 let client;
 
@@ -20,8 +21,14 @@ const getClient = () => {
   }
 
   return client;
-}
+};
+
+const fetchGuild = async () => {
+  const guild = await client.guilds.cache.get(adminGuildId);
+  return guild;
+};
 
 module.exports = {
-  getClient
+  getClient,
+  fetchGuild
 };

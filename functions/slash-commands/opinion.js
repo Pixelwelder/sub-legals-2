@@ -7,7 +7,7 @@ const getOpinionImage = require('../utils/getOpinionImage');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('opinion')
-    .setDescription(`Get this drone's opinion of a station resident (or you).`)
+    .setDescription(`Get this drone's opinion of a station resident (or yourself).`)
     .addUserOption(option => option.setName('resident').setDescription('The individual in question.')),
   async execute(interaction) {
     const user = interaction.options.getUser('resident') || interaction.user;
