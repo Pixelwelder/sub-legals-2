@@ -1,5 +1,5 @@
 const admin = require('firebase-admin');
-const isCommand = require('./isCommand');
+// const isCommand = require('./isCommand');
 const channels = require('./channels');
 const xp = require('./xp');
 
@@ -39,7 +39,7 @@ const initialize = async () => {
  */
 const update = async (message, _xpToAdd) => {
   // Don't respond to commands.
-  if (isCommand(message.content)) return;
+  // if (isCommand(message.content)) return;
 
   console.log('rank.update');
 

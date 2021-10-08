@@ -4,7 +4,7 @@ const yargs = require('yargs');
 const { REST } = require('@discordjs/rest');
 const { Routes } = require('discord-api-types/v9');
 
-const { botToken, prefix, adminId, adminGuildId, appId } = require('./settings');
+const { botToken, prefix, adminId, adminGuildId, appId } = require('./adventure-drone/settings');
 const client = require('./client');
 const getPoliteness = require('./utils/getPoliteness');
 const getIsProfane = require('./utils/getIsProfane');
