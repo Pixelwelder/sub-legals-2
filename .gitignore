@@ -66,4 +66,5 @@ node_modules/
 .env
 
 functions/__config__
+*/**/__config__
 .idea
