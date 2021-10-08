@@ -1,8 +1,8 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageEmbed } = require('discord.js');
-const { getRank, getRankInContext } = require('../utils/rank');
-const xp = require('../utils/xp');
-const { getClient } = require('../client-v2');
+const { getRank, getRankInContext } = require('../../utils/rank');
+const xp = require('../../utils/xp');
+const { getClient } = require('../client');
 
 // Tells the user their rank.
 module.exports = {

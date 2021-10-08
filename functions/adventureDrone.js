@@ -1,7 +1,7 @@
 const { MessageEmbed, Permissions } = require('discord.js');
 const { botToken, adminChannelId, adminGuildId } = require('./settings');
-const init = require('./adventureDroneInit');
-const { getClient, fetchGuild } = require('./client-v2');
+const init = require('./adventure-drone/init');
+const { getClient, fetchGuild } = require('./adventure-drone/client');
 const {
   PLAYER_ROLE, ROLE_PREFIX, CATEGORY, START_CHANNEL, ENTRYWAY_CHANNEL
 } = require('./adventure-drone/constants');

@@ -1,9 +1,9 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { getClient } = require('../client-v2');
+const { getClient } = require('../client');
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('hug2')
+    .setName('hug')
     .setDescription('Instruct this drone to hug a station resident.')
     .addUserOption(option => option
       .setName('resident')

@@ -1,6 +1,6 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { PLAYER_ROLE } = require('../adventure-drone/constants');
-const { getClient, fetchGuild } = require('../client-v2');
+const { PLAYER_ROLE } = require('../constants');
+const { getClient, fetchGuild } = require('../client');
 
 module.exports = {
   data: new SlashCommandBuilder()

@@ -1,8 +1,8 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const admin = require('firebase-admin');
-const newUser = require('../utils/newUser')
-const fixUser = require('../utils/fixUser');
-const getOpinionImage = require('../utils/getOpinionImage');
+const newUser = require('../../utils/newUser')
+const fixUser = require('../../utils/fixUser');
+const getOpinionImage = require('../../utils/getOpinionImage');
 
 module.exports = {
   data: new SlashCommandBuilder()
