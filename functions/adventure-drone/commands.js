@@ -6,7 +6,7 @@ const getCommands = (commandDirs, rootDir) => {
     commandFiles.forEach((commandFile) => {
       console.log('-', commandFile);
       const command = require(`./${commandDir}/${commandFile}`);
-      accum.push(command.data.toJSON());
+      accum.push(command);
     })
     return accum;
   }, []);

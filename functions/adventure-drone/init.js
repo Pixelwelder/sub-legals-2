@@ -5,7 +5,7 @@ const { getCommands } = require('./commands');
 
 const registerCommands = async (commandDirs, guildId) => {
   console.log('registering commands for', guildId);
-  const commands = getCommands(commandDirs, 'adventure-drone');
+  const commands = getCommands(commandDirs, 'adventure-drone').map(command => command.data.toJSON());
   const rest = new REST({ version: '9' }).setToken(botToken);
 
   try {
