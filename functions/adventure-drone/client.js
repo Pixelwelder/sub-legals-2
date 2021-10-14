@@ -7,8 +7,6 @@ const addCommands = (commandDirs, rootDir, client) => {
   client.commands = new Collection();
   const commands = getCommands(commandDirs, rootDir);
   commands.forEach((command) => {
-    console.log('+', command);
-    console.log('=======');
     client.commands.set(command.data.name, command);
   })
 };
