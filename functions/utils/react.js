@@ -1,4 +1,4 @@
-module.exports = (message) => {
+module.exports = (message, { isProfane = false } = {}) => {
   const messageStr = message.content.toLowerCase();
 
   if (messageStr.includes('mouth bone')) message.react('🦷');
@@ -6,4 +6,5 @@ module.exports = (message) => {
   if (messageStr.includes('observer')) message.react('⚠️');
   if (messageStr.includes('network')) message.react('♥');
   if (messageStr.includes('sarya')) message.react('835217625289064458');
+  if (isProfane) message.react('😮');
 };

@@ -6,6 +6,9 @@ const {
   PLAYER_ROLE, ROLE_PREFIX, CATEGORY, START_CHANNEL, ENTRYWAY_CHANNEL
 } = require('./adventure-drone/constants');
 const rank = require('./utils/rank');
+const reactions = require('./adventure-drone/reactions');
+const settings = require('./utils/settings');
+const channels = require('./utils/channels');
 
 require('./utils/initFirebase');
 
@@ -16,10 +19,12 @@ const go = async () => {
   client.once('ready', () => {
     console.log('Ready!');
     const channel = client.channels.cache.get(adminChannelId);
+    reactions.init();
     channel.send('Adventure Drone is ready!');
   });
 
-  client.on('interactionCreate', async interaction => {
+  client.on('interactionCreate', async (interaction) => {
+    console.log('interaction');
     if (!interaction.isCommand()) return;
 
     const command = client.commands.get(interaction.commandName);
@@ -34,10 +39,12 @@ const go = async () => {
     }
   });
 
+  await settings.initialize();
+  await rank.initialize();
+  channels.initialize(client);
   await client.login(botToken);
 
   init();
-  await rank.initialize();
 
   // Create rooms.
   // TODO This should only happen on setup. Ever.

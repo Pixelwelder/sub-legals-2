@@ -29,6 +29,10 @@ const executeCommand = (message, params) => {
   }
 };
 
+const reactToMessage = (message, type = 'message') => {
+
+};
+
 // messageUpdate
 const onMessage = async (message, type) => {
   console.log(message.author.id, ':', message.content, type);

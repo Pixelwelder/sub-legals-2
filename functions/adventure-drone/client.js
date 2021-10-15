@@ -14,7 +14,13 @@ const addCommands = (commandDirs, rootDir, client) => {
 let client;
 const getClient = () => {
   if (!client) {
-    client = new Client({ intents: [Intents.FLAGS.GUILDS] });
+    client = new Client({
+      intents: [
+        Intents.FLAGS.GUILDS,
+        Intents.FLAGS.GUILD_MESSAGES,
+        Intents.FLAGS.DIRECT_MESSAGES
+      ]
+    });
     addCommands(['slash-commands'], 'adventure-drone', client);
     addCommands(['slash-commands', 'slash-commands-experimental'], 'adventure-drone', client);
 

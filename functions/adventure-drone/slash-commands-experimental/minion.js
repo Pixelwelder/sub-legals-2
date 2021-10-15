@@ -39,8 +39,7 @@ module.exports = {
       .addStringOption(option => option
         .setName('name')
         .setDescription('The minion to hire')
-      ))
-  ,
+      )),
 
   async execute(interaction) {
     const discordUser = interaction.user;
