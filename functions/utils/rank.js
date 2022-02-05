@@ -36,6 +36,7 @@ const initialize = async () => {
 /**
  * When a user sends a message, we add a point.
  * TODO Add additional points for politeness.
+ * TODO Should probably retrieve info from discord_users.
  */
 const update = async (message, _xpToAdd) => {
   // Don't respond to commands.
@@ -69,6 +70,16 @@ const update = async (message, _xpToAdd) => {
   });
 
   await ranksDoc.ref.update({ all: ranks });
+
+  // Now add it to the main user object.
+  try {
+    await admin.firestore().collection('discord_users').doc(id).update({
+      xp: rankUser.xp,
+      numMessages: rankUser.numMessages
+    });
+  } catch (error) {
+    console.error(error);
+  }
 
   if (xp.toTier(rankUser.xp) > xp.toTier(oldXP) || isNew) {
     // const tag = message.member.user.tag.split('#')[0];
