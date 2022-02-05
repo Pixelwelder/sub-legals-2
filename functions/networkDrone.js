@@ -35,7 +35,7 @@ const reactToMessage = (message, type = 'message') => {
 
 // messageUpdate
 const onMessage = async (message, type) => {
-  console.log(message.author.id, ':', message.content, type);
+  console.log(message.author.username, '?', message.content, type);
   if (message.author.id === client.user.id) return;
 
   react(message);
@@ -109,7 +109,6 @@ const initDiscord = () => {
       }
     }
     // <:scanbotInspect:821873187947675688>
-    console.log(user.id);
     if (user.id === adminId && reaction.emoji.name === 'scanbotInspect') {
       reaction.message.channel.send(`The Network appreciates your contribution, <@${reaction.message.author.id}>.`);
       rank.update(reaction.message, 1000);
