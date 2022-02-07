@@ -46,7 +46,23 @@ const onMessage = async (message, type) => {
 
   // Get user xp.
   if (type === 'message') {
-    await rank.update(message);
+    const { isNew, update } = await rank.update(message);
+
+    try {
+      if (isNew) {
+        console.log('is new');
+        // TODO I'm concerned that this might reset people under certain conditions.
+        // What if isNew is true but they already have a user object? This is why merge: true.
+        await admin.firestore().collection('discord_users').doc(update.id)
+          .set(newUser({ ...update, displayName: message.author.username }), { merge: true });
+      } else {
+        await admin.firestore().collection('discord_users').doc(update.id)
+          .update({ ...update, displayName: message.author.username });
+      }
+      console.log('Updated user', update.id);
+    } catch (error) {
+      console.error(error);
+    }
   }
 };
 

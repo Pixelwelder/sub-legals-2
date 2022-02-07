@@ -2,19 +2,19 @@ const admin = require('firebase-admin');
 // const isCommand = require('./isCommand');
 const channels = require('./channels');
 const xp = require('./xp');
-
-/**
- * For now, we keep the whole thing in memory.
- * In the future we'll need a better solution.
- */
+const newUser = require('../utils/newUser');
 
 const newRankUser = overrides => ({
-  id: 'no id',
+  id: '',
   numMessages: 0,
   xp: 0,
   ...overrides
 });
 
+/**
+ * For now, we keep the whole thing in memory.
+ * In the future we'll need a better solution.
+ */
 let ranksDoc;  // The Firestore doc
 let ranks;     // An array of rank objects.
 let ranksById; // All rank objects keyed by user ID.
@@ -37,6 +37,8 @@ const initialize = async () => {
  * When a user sends a message, we add a point.
  * TODO Add additional points for politeness.
  * TODO Should probably retrieve info from discord_users.
+ * TODO Shouldn't store info on meta, but hey.
+ * TODO Switch id to uid.
  */
 const update = async (message, _xpToAdd) => {
   // Don't respond to commands.
@@ -71,16 +73,6 @@ const update = async (message, _xpToAdd) => {
 
   await ranksDoc.ref.update({ all: ranks });
 
-  // Now add it to the main user object.
-  try {
-    await admin.firestore().collection('discord_users').doc(id).update({
-      xp: rankUser.xp,
-      numMessages: rankUser.numMessages
-    });
-  } catch (error) {
-    console.error(error);
-  }
-
   if (xp.toTier(rankUser.xp) > xp.toTier(oldXP) || isNew) {
     // const tag = message.member.user.tag.split('#')[0];
     const tag = `<@${message.author.id}>`;
@@ -88,6 +80,11 @@ const update = async (message, _xpToAdd) => {
     if (channel) {
       channel.send(`${tag} has ascended to Tier ${xp.toTier(rankUser.xp)}.`);
     }
+  }
+
+  return {
+    isNew,
+    update: rankUser
   }
 };
 
