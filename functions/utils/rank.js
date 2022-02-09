@@ -44,8 +44,6 @@ const update = async (message, _xpToAdd) => {
   // Don't respond to commands.
   // if (isCommand(message.content)) return;
 
-  console.log('rank.update');
-
   // Don't respond to bots.
   if (message.author.bot) return;
 

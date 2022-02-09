@@ -59,7 +59,6 @@ const onMessage = async (message, type) => {
         await admin.firestore().collection('discord_users').doc(update.id)
           .update({ ...update, displayName: message.author.username });
       }
-      console.log('Updated user', update.id);
     } catch (error) {
       console.error(error);
     }

@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@pixelwelders/tlh-universe-data": "^10.4.0"
+  }
+}
