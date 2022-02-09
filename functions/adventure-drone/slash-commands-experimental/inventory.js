@@ -22,18 +22,21 @@ const getImage = item => {
 }
 
 // When we load, we grab all items from the database. This is probably not scalable.
-let itemsByOwner = {};
-const init = async () => {
-  console.log('initializing inventory');
-  const docs = await getFirestore().collection('discord_inventory').get();
-  const items = docs.docs.map(doc => doc.data());
-  itemsByOwner = items.reduce((acc, item) => {
-    if (!acc[item.owner]) acc[item.owner] = [];
-    acc[item.owner].push(item);
-    return acc;
-  });
+const itemsByOwner = {}
+const refreshUserItems = async (userId) => {
+  const items = await getFirestore().collection('discord_inventory').where('player', '==', userId).get();
+  itemsByOwner[userId] = items.docs.map(doc => doc.data());
 };
-init();
+// const loadItems = async () => {
+//   console.log('----- initializing inventory -----');
+//   const docs = await getFirestore().collection('discord_inventory').get();
+//   const items = docs.docs.map(doc => doc.data());
+//   itemsByOwner = items.reduce((acc, item) => {
+//     if (!acc[item.player]) acc[item.player] = [];
+//     acc[item.player].push(item);
+//     return acc;
+//   }, {});
+// };
 
 // Set up storage.
 const bucket = getStorage().bucket();
@@ -70,21 +73,18 @@ module.exports = {
         // Defer the reply, just in case.
         await interaction.deferReply();
 
-        // Even though we have all items, we refresh here.
-        const itemDocs = await getFirestore().collection('discord_inventory').where('owner', '==', interaction.member.id).get();
-        const items = itemDocs.docs.map(doc => doc.data());
-        itemsByOwner[interaction.member.id] = items;
+        // Refresh user items.
+        await refreshUserItems(interaction.member.id);
+        const items = itemsByOwner[interaction.member.id];
 
         const embed = new MessageEmbed()
           .setColor('0x000000')
           .setTitle(`<@${interaction.user.id}>'s Inventory`);
 
         const fields = items.map((item, index) => {
-          console.log('item', item);
           return {
             name: `${numToLetterEmoji(index)} | ${item.displayName || 'Item'}`,
-            value: item.description || 'An interesting item.',
-            inline: true
+            value: item.description || 'An interesting item.'
           };
         });
 
@@ -97,12 +97,14 @@ module.exports = {
         // Defer the reply, just in case.
         await interaction.deferReply();
 
+        // Refresh user items.
+        await refreshUserItems(interaction.member.id);
+
         const letter = interaction.options.getString('letter');
         const item = itemsByOwner[interaction.member.id][letterToNum(letter)];
-        const image = getImage(item);
 
         if (!item) {
-          interaction.reply('You don\'t have that item.', { ephemeral: true });
+          interaction.editReply('You don\'t have that item.', { ephemeral: true });
           return;
         }
 
@@ -111,7 +113,7 @@ module.exports = {
           .setTitle(`<@${interaction.user.id}>'s Inventory`)
           .addField('Item', item.displayName || 'Item', true)
           .addField('Description', item.description || 'An interesting item.', true)
-          .setImage(image);
+          .setImage(getImage(item));
 
         interaction.editReply({ embeds: [embed], ephemeral: true });
       },
@@ -120,9 +122,11 @@ module.exports = {
         // Defer the reply, just in case.
         await interaction.deferReply();
 
+        // Refresh user items.
+        await refreshUserItems(interaction.member.id);
+
         const letter = interaction.options.getString('letter');
         const item = itemsByOwner[interaction.member.id][letterToNum(letter)];
-        console.log('item', letter, letterToNum(letter), item);
 
         if (!item) {
           interaction.editReply(`You don't have that item.`, { ephemeral: true });
