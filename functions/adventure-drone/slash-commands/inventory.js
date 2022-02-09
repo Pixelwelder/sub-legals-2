@@ -45,13 +45,13 @@ const bucket = getStorage().bucket();
 // http://storage.googleapis.com/species-registry.appspot.com/images/inventory/icon/parts_01.png
 
 // Return a single item to Discord.
-const showItem = async (interaction, { ephemeral } = {}) => {
+const showItem = async (interaction, { ephemeral = false } = {}) => {
   // Defer the reply, just in case.
-  await interaction.deferReply();
+  await interaction.deferReply({ ephemeral });
 
   const item = await getItem(interaction);
   if (!item) {
-    interaction.editReply('You don\'t have that item.', { ephemeral: true });
+    interaction.editReply('You don\'t have that item.');
     return;
   }
 
@@ -62,7 +62,7 @@ const showItem = async (interaction, { ephemeral } = {}) => {
     .addField('Description', item.description || 'An interesting item.', true)
     .setImage(getImage(item));
 
-  interaction.editReply({ embeds: [embed], ephemeral });
+  interaction.editReply({ embeds: [embed] });
 };
 
 module.exports = {
@@ -107,7 +107,7 @@ module.exports = {
     const command = {
       'list': async () => {
         // Defer the reply, just in case.
-        await interaction.deferReply();
+        await interaction.deferReply({ ephemeral: true });
 
         // Refresh user items.
         await refreshUserItems(interaction.member.id);
@@ -130,7 +130,7 @@ module.exports = {
           embed.setDescription('You don\'t have any items.');
         }
 
-        await interaction.editReply({ embeds: [embed], ephemeral: true });
+        await interaction.editReply({ embeds: [embed] });
       },
 
       'examine': async () => {
@@ -138,31 +138,30 @@ module.exports = {
       },
 
       'show': async () => {
-        await showItem(interaction, { ephemeral: true });
+        await showItem(interaction, { ephemeral: false });
       },
 
       // Give the inventory item to another user.
       'give': async () => {
-        // Defer the reply, just in case.
-        await interaction.deferReply();
+        // Do NOT defer the reply.
+        await interaction.deferReply({ ephemeral: true });
 
         // Get the item
         const item = await getItem(interaction);
         if (!item) {
-          interaction.editReply('You don\'t have that item.', { ephemeral: true });
+          interaction.editReply('You don\'t have that item.' );
           return;
         }
 
         // Get the target user.
         const { id } = interaction.options.getUser('resident');
 
-        console.log('the item', item);
-
         // Make the transfer.
         await getFirestore().collection('discord_inventory').doc(item.uid).update({ player: id });
 
         // Announce the transfer.
-        interaction.editReply(`<@${id}> has received <@${interaction.user.id}>'s ${item.displayName || 'item'}!`, { ephemeral: false });
+        interaction.editReply(`You gave <@${id}> ${item.displayName || 'an item'}.`);
+        interaction.channel.send(`<@${id}> has received <@${interaction.user.id}>'s ${item.displayName || 'item'}!`, { ephemeral: false });
       }
     }[interaction.options.getSubcommand()];
 
@@ -171,7 +170,7 @@ module.exports = {
         await command();
       } catch (e) {
         console.error(e);
-        interaction.editReply('Oops, something went wrong.', { ephemeral: true });
+        interaction.editReply('Oops, something went wrong.');
       } finally {
         console.log('Command complete');
       }
