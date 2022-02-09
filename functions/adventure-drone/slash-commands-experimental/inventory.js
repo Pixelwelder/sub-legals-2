@@ -11,14 +11,14 @@ const emojis = [
 ];
 // TODO Handle numbers above 26.
 const numToLetter = (num) => String.fromCharCode(0x41 + num);
-const letterToNum = (letter) => letter.charCodeAt(0) - 0x41;
+const letterToNum = (letter) => letter.toUpperCase().charCodeAt(0) - 0x41;
 const numToLetterEmoji = (num) => emojis[Math.min(num, 25)];
 
 const imageRoot = 'http://storage.googleapis.com/species-registry.appspot.com/images/inventory/icon';
 const defaultImage = 'parts_01.png';
 const getImage = item => {
-    const { image: { x1Url = defaultImage } } = item;
-    return `${imageRoot}/${x1Url}`;
+  const { image: { x1Url = defaultImage } } = item;
+  return `${imageRoot}/${x1Url}`;
 }
 
 // When we load, we grab all items from the database. This is probably not scalable.
@@ -27,21 +27,44 @@ const refreshUserItems = async (userId) => {
   const items = await getFirestore().collection('discord_inventory').where('player', '==', userId).get();
   itemsByOwner[userId] = items.docs.map(doc => doc.data());
 };
-// const loadItems = async () => {
-//   console.log('----- initializing inventory -----');
-//   const docs = await getFirestore().collection('discord_inventory').get();
-//   const items = docs.docs.map(doc => doc.data());
-//   itemsByOwner = items.reduce((acc, item) => {
-//     if (!acc[item.player]) acc[item.player] = [];
-//     acc[item.player].push(item);
-//     return acc;
-//   }, {});
-// };
+
+const getItem = async (interaction) => {
+  console.log('get item', interaction.member.id, interaction.options.getString('letter'));
+  // Refresh this user's items.
+  await refreshUserItems(interaction.member.id);
+
+  // Get the item.
+  const letter = interaction.options.getString('letter');
+  const item = itemsByOwner[interaction.member.id][letterToNum(letter)];
+
+  return item;
+};
 
 // Set up storage.
 const bucket = getStorage().bucket();
 // const file = await bucket.file('images/inventory/icon/parts_01.png').download();
 // http://storage.googleapis.com/species-registry.appspot.com/images/inventory/icon/parts_01.png
+
+// Return a single item to Discord.
+const showItem = async (interaction, { ephemeral } = {}) => {
+  // Defer the reply, just in case.
+  await interaction.deferReply();
+
+  const item = await getItem(interaction);
+  if (!item) {
+    interaction.editReply('You don\'t have that item.', { ephemeral: true });
+    return;
+  }
+
+  // Send it.
+  const embed = new MessageEmbed()
+    .setColor('0x000000')
+    .setTitle(`${item.displayName} (owned by <@${interaction.user.id}>)`)
+    .addField('Description', item.description || 'An interesting item.', true)
+    .setImage(getImage(item));
+
+  interaction.editReply({ embeds: [embed], ephemeral });
+};
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -56,6 +79,7 @@ module.exports = {
       .addStringOption(option => option
         .setName('letter')
         .setDescription('The letter of the item (A, B, C, etc.) to examine.')
+        .setRequired(true)
       ))
     .addSubcommand(subcommand => subcommand
       .setName('show')
@@ -63,6 +87,19 @@ module.exports = {
       .addStringOption(option => option
         .setName('letter')
         .setDescription('The letter of the item (A, B, C, etc.) to show.')
+        .setRequired(true)
+      ))
+    .addSubcommand(subcommand => subcommand
+      .setName('give')
+      .setDescription('Give an inventory item to another user.')
+      .addStringOption(option => option
+        .setName('letter')
+        .setDescription('The letter of the item (A, B, C, etc.) to give.')
+        .setRequired(true)
+      )
+      .addUserOption(option => option
+        .setName('resident')
+        .setDescription('The station resident to give the item to.')
         .setRequired(true)
       )),
     
@@ -90,56 +127,39 @@ module.exports = {
 
         embed.addFields(fields);
         await interaction.editReply({ embeds: [embed], ephemeral: true });
-        
       },
 
       'examine': async () => {
+        await showItem(interaction);
+      },
+
+      'show': async () => {
+        await showItem(interaction, { ephemeral: true });
+      },
+
+      // Give the inventory item to another user.
+      'give': async () => {
         // Defer the reply, just in case.
         await interaction.deferReply();
 
-        // Refresh user items.
-        await refreshUserItems(interaction.member.id);
-
-        const letter = interaction.options.getString('letter');
-        const item = itemsByOwner[interaction.member.id][letterToNum(letter)];
-
+        // Get the item
+        const item = getItem(interaction);
         if (!item) {
           interaction.editReply('You don\'t have that item.', { ephemeral: true });
           return;
         }
 
-        const embed = new MessageEmbed()
-          .setColor('0x000000')
-          .setTitle(`<@${interaction.user.id}>'s Inventory`)
-          .addField('Item', item.displayName || 'Item', true)
-          .addField('Description', item.description || 'An interesting item.', true)
-          .setImage(getImage(item));
+        // Get the target user.
+        const { id } = interaction.options.getUser('resident');
 
-        interaction.editReply({ embeds: [embed], ephemeral: true });
-      },
+        // Give the item to the target user.
+        interaction.editReply(`<@${id}> has received <@${interaction.user.id}>'s ${item.displayName || 'item'}!`, { ephemeral: true });
 
-      'show': async () => {
-        // Defer the reply, just in case.
-        await interaction.deferReply();
+        // Remove the item from the user's inventory.
+        
 
-        // Refresh user items.
-        await refreshUserItems(interaction.member.id);
-
-        const letter = interaction.options.getString('letter');
-        const item = itemsByOwner[interaction.member.id][letterToNum(letter)];
-
-        if (!item) {
-          interaction.editReply(`You don't have that item.`, { ephemeral: true });
-          return;
-        }
-
-        const embed = new MessageEmbed()
-          .setColor('0x000000')
-          .setTitle(`<@${interaction.user.id}>'s Inventory`)
-          .addField('Item', item.displayName || 'Item', true)
-          .addField('Description', item.description || 'An interesting item.', true);
-
-        interaction.editReply({ embeds: [embed] });
+        // Send the item to the target user.
+        
       }
     }[interaction.options.getSubcommand()];
 
