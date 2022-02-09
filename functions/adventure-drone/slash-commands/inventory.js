@@ -29,7 +29,6 @@ const refreshUserItems = async (userId) => {
 };
 
 const getItem = async (interaction) => {
-  console.log('get item', interaction.member.id, interaction.options.getString('letter'));
   // Refresh this user's items.
   await refreshUserItems(interaction.member.id);
 
@@ -125,7 +124,12 @@ module.exports = {
           };
         });
 
-        embed.addFields(fields);
+        if (fields.length) {
+          embed.addFields(fields);
+        } else {
+          embed.setDescription('You don\'t have any items.');
+        }
+
         await interaction.editReply({ embeds: [embed], ephemeral: true });
       },
 
@@ -143,7 +147,7 @@ module.exports = {
         await interaction.deferReply();
 
         // Get the item
-        const item = getItem(interaction);
+        const item = await getItem(interaction);
         if (!item) {
           interaction.editReply('You don\'t have that item.', { ephemeral: true });
           return;
@@ -152,14 +156,13 @@ module.exports = {
         // Get the target user.
         const { id } = interaction.options.getUser('resident');
 
-        // Give the item to the target user.
-        interaction.editReply(`<@${id}> has received <@${interaction.user.id}>'s ${item.displayName || 'item'}!`, { ephemeral: true });
+        console.log('the item', item);
 
-        // Remove the item from the user's inventory.
-        
+        // Make the transfer.
+        await getFirestore().collection('discord_inventory').doc(item.uid).update({ player: id });
 
-        // Send the item to the target user.
-        
+        // Announce the transfer.
+        interaction.editReply(`<@${id}> has received <@${interaction.user.id}>'s ${item.displayName || 'item'}!`, { ephemeral: false });
       }
     }[interaction.options.getSubcommand()];
 
