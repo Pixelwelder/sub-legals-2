@@ -1,4 +1,4 @@
-const admin = require('firebase-admin');
+const { getFirestore } = require('firebase-admin/firestore');
 const { getClient } = require('../client');
 const react = require('../../utils/react');
 const getIsProfane = require('../../utils/getIsProfane');
@@ -21,7 +21,7 @@ const onMessage = async (message, type) => {
   // Now record.
   // TODO Move.
   let user = newUser();
-  const ref = admin.firestore().collection('discord_users').doc(message.author.id);
+  const ref = getFirestore().collection('discord_users').doc(message.author.id);
   const doc = await ref.get();
   if (doc.exists) {
     user = doc.data();
@@ -53,10 +53,10 @@ const onMessage = async (message, type) => {
         console.log('is new');
         // TODO I'm concerned that this might reset people under certain conditions.
         // What if isNew is true but they already have a user object? This is why merge: true.
-        await admin.firestore().collection('discord_users').doc(update.id)
+        await getFirestore().collection('discord_users').doc(update.id)
           .set(newUser({ ...update, displayName: message.author.username }), { merge: true });
       } else {
-        await admin.firestore().collection('discord_users').doc(update.id)
+        await getFirestore().collection('discord_users').doc(update.id)
           .update({ ...update, displayName: message.author.username });
       }
     } catch (error) {
