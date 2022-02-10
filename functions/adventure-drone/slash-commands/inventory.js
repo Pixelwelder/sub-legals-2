@@ -43,11 +43,11 @@ const getItem = async (interaction) => {
   const result = fuse.search(itemName);
 
   if (result.length === 0) {
-    interaction.editReply('You don\'t have that item.');
-    return [];
+    interaction.editReply(`You don't have an item called "${itemName}".`);
+    return null;
   } else if (result.length > 1) {
     interaction.editReply(`Can you be more specific? That could describe ${result.length} items.`);
-    return [];
+    return null;
   }
 
   return result[0].item;
@@ -66,9 +66,11 @@ const showItem = async (interaction, { ephemeral = false, verbose = false } = {}
   const item = await getItem(interaction);
   if (!item) return; // We're done.
 
+  console.log('found item', item);
+
   // Send it.
   let title = item.displayName;
-  console.log('title', title);
+  console.log('title', item, title);
   if (!ephemeral) title = `${title} (owned by ${interaction.user.username})`
   const embed = new MessageEmbed()
     .setColor('0x000000')
@@ -129,7 +131,7 @@ module.exports = {
         .setRequired(true)
       )
       .addUserOption(option => option
-        .setName('item')
+        .setName('resident')
         .setDescription('The station resident to give the item to.')
         .setRequired(true)
       )),
