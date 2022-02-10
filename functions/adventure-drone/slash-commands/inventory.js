@@ -34,15 +34,23 @@ const getItem = async (interaction) => {
   await refreshUserItems(interaction.member.id);
 
   // Get the item.
-  const letter = interaction.options.getString('letter');
-  const item = itemsByOwner[interaction.member.id][letterToNum(letter)];
+  const itemName = interaction.options.getString('item');
+  // const item = itemsByOwner[interaction.member.id][letterToNum(itemName)];
 
   // Use Fuse to search for the item.
   const items = itemsByOwner[interaction.member.id];
   const fuse = new Fuse(items, { ignoreLocation: true, includeScore: true, threshold: 0.2, keys: ['displayName'] });
-  const result = fuse.search(letter.replace(' ', ''));
+  const result = fuse.search(itemName);
 
-  return result;
+  if (result.length === 0) {
+    interaction.editReply('You don\'t have that item.');
+    return [];
+  } else if (result.length > 1) {
+    interaction.editReply(`Can you be more specific? That could describe ${result.length} items.`);
+    return [];
+  }
+
+  return result[0].item;
 };
 
 // Set up storage.
@@ -55,25 +63,12 @@ const showItem = async (interaction, { ephemeral = false, verbose = false } = {}
   // Defer the reply, just in case.
   await interaction.deferReply({ ephemeral });
 
-  let item;
-  const items = await getItem(interaction);
-  switch (items.length) {
-    case 0:
-      interaction.editReply('You don\'t have that item.');
-      break;
+  const item = await getItem(interaction);
+  if (!item) return; // We're done.
 
-    case 1:
-      ({ item } = items[0]);
-      break;
-
-    default:
-      // We found more than one.
-      interaction.editReply(`Can you be more specific? That could describe ${items.length} items.`);
-      break;
-  }
-  
   // Send it.
   let title = item.displayName;
+  console.log('title', title);
   if (!ephemeral) title = `${title} (owned by ${interaction.user.username})`
   const embed = new MessageEmbed()
     .setColor('0x000000')
@@ -113,28 +108,28 @@ module.exports = {
       .setName('examine')
       .setDescription('Examine an inventory item.')
       .addStringOption(option => option
-        .setName('letter')
-        .setDescription('The letter of the item (A, B, C, etc.) to examine.')
+        .setName('item')
+        .setDescription('The name of the item to examine.')
         .setRequired(true)
       ))
     .addSubcommand(subcommand => subcommand
       .setName('show')
       .setDescription('Show an inventory item to the room.')
       .addStringOption(option => option
-        .setName('letter')
-        .setDescription('The letter of the item (A, B, C, etc.) to show.')
+        .setName('item')
+        .setDescription('The name of the item to show.')
         .setRequired(true)
       ))
     .addSubcommand(subcommand => subcommand
       .setName('give')
       .setDescription('Give an inventory item to another user.')
       .addStringOption(option => option
-        .setName('letter')
-        .setDescription('The letter of the item (A, B, C, etc.) to give.')
+        .setName('item')
+        .setDescription('The name of the item to give.')
         .setRequired(true)
       )
       .addUserOption(option => option
-        .setName('resident')
+        .setName('item')
         .setDescription('The station resident to give the item to.')
         .setRequired(true)
       )),
@@ -156,7 +151,7 @@ module.exports = {
 
         const fields = items.map((item, index) => {
           return {
-            name: `${numToLetterEmoji(index)} | ${item.displayName || 'Item'}`,
+            name: `${index + 1} | ${item.displayName || 'Item'}`,
             value: item.description || 'An interesting item.'
           };
         });
@@ -185,10 +180,7 @@ module.exports = {
 
         // Get the item
         const item = await getItem(interaction);
-        if (!item) {
-          interaction.editReply('You don\'t have that item.' );
-          return;
-        }
+        if (!item) return; // We're done.
 
         // Get the target user.
         const { id } = interaction.options.getUser('resident');
