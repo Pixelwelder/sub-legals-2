@@ -66,22 +66,25 @@ const go = async () => {
       displayName: `User's Manual`,
       description: `Someone has scratched "DON'T PANIC" into the cover.`,
       data: {
-        text: `**Welcome aboard!**
-          \nYou are now in orbit around the largest gas giant in _thirty lightyears_.
-          `,
+        fields: [
+          { name: 'Welcome Aboard!', value: `You've just arrived at the most flamboyantly dangerous place this side of the Network.` },
+          { name: 'What _is_ this place?', value: `You're on a small research station at the very edge of the Galactic Network. Why so far? Because it's' illegal. Why is it illegal? You'll see.` },
+          { name: 'What happens here?', value: `What _doesn't_ happen here? That's a shorter list, and here it is: (1) **Disrespect for fellow residents**, (2) **Unsafe/NSFW content.** Please respect these rules or you'll be spaced by a drone or a fellow scientist.` },
+          { name: 'What else happens here?', value: `Creation, and lots of it. Put your creations in #show-and-tell, your roleplay in the TLH UNIVERSE channels, and the rest should make sense shortly. Just… don't make the drones sad.` }
+        ],
         image: 'station-small.jpg'
       },
-      player: ''
+      player: member.user.id
     });
     await doc.set(item);
 
     // Welcome the new user aboard.
-    const channelId = '941289749119901736';
+    // const channelId = '941289749119901736'; // TLH Test | #game-channel
+    const channelId = '685518066402328705'; // TLH | #general
     const channel = client.channels.cache.get(channelId);
 
-    channel.send(`Hi <@${member.uid}>! I've taken the liberty of adding a User's Manual to your inventory. You can read it with the command '/inventory examine A'.`)
+    channel.send('Hi ' + member.user.toString() + '! I\'ve taken the liberty of adding a User\'s Manual to your inventory. You can check your inventory by typing `/inventory list`.')
     
-
     // if (!channel || !role) return;
 
     // const embed = new MessageEmbed()

@@ -75,11 +75,8 @@ const showItem = async (interaction, { ephemeral = false, verbose = false } = {}
   const item = await getItem(interaction);
   if (!item) return; // We're done.
 
-  console.log('found item', item);
-
   // Send it.
   let title = item.displayName;
-  console.log('title', item, title);
   if (!ephemeral) title = `${title} (owned by ${interaction.user.username})`
   const embed = new MessageEmbed()
     .setColor('0x000000')
@@ -169,6 +166,7 @@ module.exports = {
 
         if (fields.length) {
           embed.addFields(fields);
+          embed.setDescription('You can use `/inventory examine <item name>` to examine an item.');
         } else {
           embed.setDescription('You don\'t have any items.');
         }
