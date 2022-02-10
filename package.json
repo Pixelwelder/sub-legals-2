@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "@pixelwelders/tlh-universe-data": "^10.4.0"
+    "@pixelwelders/tlh-universe-data": "^10.4.3",
+    "fuse.js": "^6.5.3"
   }
 }

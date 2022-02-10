@@ -4,6 +4,7 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const { fetchMinions, fetchMinionsByName, newMinion, refreshMinions } = require('../slash-commands-common/minion-common');
 const { capitalize } = require('@pixelwelders/tlh-universe-util');
 const { MessageEmbed } = require('discord.js');
+const Fuse = require('fuse.js');
 
 // Create an array of emojis, one for each letter.
 const emojis = [
@@ -16,9 +17,9 @@ const numToLetterEmoji = (num) => emojis[Math.min(num, 25)];
 
 const imageRoot = 'http://storage.googleapis.com/species-registry.appspot.com/images/inventory/icon';
 const defaultImage = 'parts_01.png';
-const getImage = item => {
-  const { image: { x1Url = defaultImage } } = item;
-  return `${imageRoot}/${x1Url}`;
+const getImage = (item, paramName = 'image') => {
+  const { image: { [paramName]: url = defaultImage } = {} } = item;
+  return `${imageRoot}/${url}`;
 }
 
 // When we load, we grab all items from the database. This is probably not scalable.
@@ -36,7 +37,12 @@ const getItem = async (interaction) => {
   const letter = interaction.options.getString('letter');
   const item = itemsByOwner[interaction.member.id][letterToNum(letter)];
 
-  return item;
+  // Use Fuse to search for the item.
+  const items = itemsByOwner[interaction.member.id];
+  const fuse = new Fuse(items, { ignoreLocation: true, includeScore: true, threshold: 0.2, keys: ['displayName'] });
+  const result = fuse.search(letter.replace(' ', ''));
+
+  return result;
 };
 
 // Set up storage.
@@ -45,22 +51,53 @@ const bucket = getStorage().bucket();
 // http://storage.googleapis.com/species-registry.appspot.com/images/inventory/icon/parts_01.png
 
 // Return a single item to Discord.
-const showItem = async (interaction, { ephemeral = false } = {}) => {
+const showItem = async (interaction, { ephemeral = false, verbose = false } = {}) => {
   // Defer the reply, just in case.
   await interaction.deferReply({ ephemeral });
 
-  const item = await getItem(interaction);
-  if (!item) {
-    interaction.editReply('You don\'t have that item.');
-    return;
-  }
+  let item;
+  const items = await getItem(interaction);
+  switch (items.length) {
+    case 0:
+      interaction.editReply('You don\'t have that item.');
+      break;
 
+    case 1:
+      ({ item } = items[0]);
+      break;
+
+    default:
+      // We found more than one.
+      interaction.editReply(`Can you be more specific? That could describe ${items.length} items.`);
+      break;
+  }
+  
   // Send it.
+  let title = item.displayName;
+  if (!ephemeral) title = `${title} (owned by ${interaction.user.username})`
   const embed = new MessageEmbed()
     .setColor('0x000000')
-    .setTitle(`${item.displayName} (owned by <@${interaction.user.id}>)`)
-    .addField('Description', item.description || 'An interesting item.', true)
-    .setImage(getImage(item));
+    .setTitle(title)
+
+  let description;
+  let image;
+  if (verbose) {
+    // Inventory items may have a content property like so: { image: '', fields: [{ name, value }, ...] }
+    const { data = {} } = item;
+    const { fields } = data;
+    if (fields) {
+      fields.forEach(({ name, value, inline = false }) => embed.addField(name, value, inline));
+    } else {
+      description = item.description;
+    }
+    if (data.image) image = getImage({ image: data });
+  } else {
+    description = item.description;
+  }
+
+  if (description) embed.setDescription(description);
+  if (!image) image = getImage(item, 'x1Url');
+  embed.setImage(image);
 
   interaction.editReply({ embeds: [embed] });
 };
@@ -115,7 +152,7 @@ module.exports = {
 
         const embed = new MessageEmbed()
           .setColor('0x000000')
-          .setTitle(`<@${interaction.user.id}>'s Inventory`);
+          .setTitle(`${interaction.user.username}'s Inventory`);
 
         const fields = items.map((item, index) => {
           return {
@@ -134,11 +171,11 @@ module.exports = {
       },
 
       'examine': async () => {
-        await showItem(interaction);
+        await showItem(interaction, { verbose: true, ephemeral: true });
       },
 
       'show': async () => {
-        await showItem(interaction, { ephemeral: false });
+        await showItem(interaction, { verbose: false, ephemeral: false });
       },
 
       // Give the inventory item to another user.
