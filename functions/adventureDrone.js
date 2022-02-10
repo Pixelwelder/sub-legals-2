@@ -11,7 +11,7 @@ const settings = require('./utils/settings');
 const channels = require('./utils/channels');
 const { getFirestore } = require('firebase-admin/firestore');
 const newUser = require('./utils/newUser');
-const { InventoryItem } = require('@pixelwelders/tlh-universe-data');
+const { UsersManual } = require('@pixelwelders/tlh-universe-data');
 
 require('./utils/initFirebase');
 
@@ -61,21 +61,7 @@ const go = async () => {
     // Create an inventory item for the new user.
     // TODO This will create one every time they join.
     const doc = getFirestore().collection('discord_inventory').doc();
-    const item = new InventoryItem({
-      uid: doc.id,
-      displayName: `User's Manual`,
-      description: `Someone has scratched "DON'T PANIC" into the cover.`,
-      data: {
-        fields: [
-          { name: 'Welcome Aboard!', value: `You've just arrived at the most flamboyantly dangerous place this side of the Network.` },
-          { name: 'What _is_ this place?', value: `You're on a small research station at the very edge of the Galactic Network. Why so far? Because it's' illegal. Why is it illegal? You'll see.` },
-          { name: 'What happens here?', value: `What _doesn't_ happen here? That's a shorter list, and here it is: (1) **Disrespect for fellow residents**, (2) **Unsafe/NSFW content.** Please respect these rules or you'll be spaced by a drone or a fellow scientist.` },
-          { name: 'What else happens here?', value: `Creation, and lots of it. Put your creations in #show-and-tell, your roleplay in the TLH UNIVERSE channels, and the rest should make sense shortly. Just… don't make the drones sad.` }
-        ],
-        image: 'station-small.jpg'
-      },
-      player: member.user.id
-    });
+    const item = new UsersManual({ uid: doc.id, username: member.user.username, userUid: member.user.id });
     await doc.set(item);
 
     // Welcome the new user aboard.
