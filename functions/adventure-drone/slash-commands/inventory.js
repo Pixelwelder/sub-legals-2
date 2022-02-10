@@ -29,6 +29,13 @@ const refreshUserItems = async (userId) => {
   itemsByOwner[userId] = items.docs.map(doc => doc.data());
 };
 
+// Convert an array of strings to a single string with an Oxford comma.
+const oxfordComma = (strings, conjunction = 'and') => {
+  if (strings.length === 1) return strings[0];
+  if (strings.length === 2) return `${strings[0]} ${conjunction} ${strings[1]}`;
+  return `${strings.slice(0, -1).join(', ')}, ${conjunction} ${strings[strings.length - 1]}`;
+}
+
 const getItem = async (interaction) => {
   // Refresh this user's items.
   await refreshUserItems(interaction.member.id);
@@ -46,7 +53,9 @@ const getItem = async (interaction) => {
     interaction.editReply(`You don't have an item called "${itemName}".`);
     return null;
   } else if (result.length > 1) {
-    interaction.editReply(`Can you be more specific? That could describe ${result.length} items.`);
+    interaction.editReply(
+      `Can you be more specific? That could describe ${oxfordComma(result.map(({ item }) => `**${item.displayName}**`), 'or')}.`
+    );
     return null;
   }
 
