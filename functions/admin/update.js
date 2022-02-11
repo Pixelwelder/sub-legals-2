@@ -1,6 +1,6 @@
 const admin = require('firebase-admin');
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { getClient } = require('../client');
+const { getClient } = require('../adventure-drone/client');
 
 // This updates all users with Discord usernames.
 module.exports = {

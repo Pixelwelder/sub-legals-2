@@ -1,8 +1,8 @@
 const admin = require('firebase-admin');
-const newUser = require('../newUser');
-const { TLHDiscordId } = require ('../../constants');
+const newUser = require('../utils/newUser');
+const { TLHDiscordId } = require ('../constants');
 
-require('../initFirebase');
+require('../utils/initFirebase');
 
 const updateToLatest = async () => {
   const userDocs = await admin.firestore().collection('discord_users').get();

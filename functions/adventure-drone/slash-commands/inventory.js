@@ -1,7 +1,6 @@
 const { getFirestore } = require('firebase-admin/firestore');
 const { getStorage } = require('firebase-admin/storage');
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { fetchMinions, fetchMinionsByName, newMinion, refreshMinions } = require('../slash-commands-common/minion-common');
 const { capitalize } = require('@pixelwelders/tlh-universe-util');
 const { MessageEmbed } = require('discord.js');
 const Fuse = require('fuse.js');

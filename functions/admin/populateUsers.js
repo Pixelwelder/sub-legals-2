@@ -1,5 +1,4 @@
 const admin = require('firebase-admin');
-const { MessageEmbed, Permissions } = require('discord.js');
 const { botToken, adminChannelId, adminGuildId } = require('../adventure-drone/settings');
 const init = require('../adventure-drone/init');
 const { getClient, fetchGuild } = require('../adventure-drone/client');
