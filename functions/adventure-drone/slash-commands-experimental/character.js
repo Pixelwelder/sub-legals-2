@@ -2,11 +2,21 @@ const { SlashCommandBuilder } = require("@discordjs/builders");
 const { MessageEmbed } = require("discord.js");
 const { getFirestore } = require('firebase-admin/firestore');
 
-const full = '🟥';
+// Create an array of emojis, one for each letter.
+const emojis = [
+  '🅰', '🅱', '🅲', '🅳', '🅴', '🅵', '🅶', '🅷', '🅸', '🅹', '🅺', '🅻', '🅼', '🅽', '🅾', '🅿', '🆀', '🆁', '🆂', '🆃', '🆄', '🆅', '🆆', '🆇', '🆈', '🆉'
+];
+// TODO Handle numbers above 26.
+const numToLetter = (num) => String.fromCharCode(0x41 + num);
+const letterToNum = (letter) => letter.toUpperCase().charCodeAt(0) - 0x41;
+const numToLetterEmoji = (num) => emojis[Math.min(num, 25)];
+
+const fullEmoji = '🟥';
 const empty = '⬛';
+const point = '🔴';
 // Converts a number and a max to a bar made of emojis.
 // The bar has max number of segments.
-const getBar = (num, max) => {
+const getBar = (num, max, full = fullEmoji) => {
   return `${full.repeat(num)}${empty.repeat(max - num)}`;
 };
 
@@ -45,6 +55,7 @@ module.exports = {
           };
         });
 
+        fields.push({ name: 'Available points', value: getBar(character.statPoints, character.statPoints, point) });
         embed.setFields(fields);
 
         interaction.editReply({ embeds: [embed] });
