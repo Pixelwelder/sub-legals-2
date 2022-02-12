@@ -8,7 +8,6 @@ const rank = require('../../utils/rank');
 
 const onMessage = async (message, type) => {
   const client = getClient();
-  console.log(`${message.author.username}: ${message.content}`);
   if (message.author.id === client.user.id) return;
 
   // Change opinion of user if necessary.

@@ -5,15 +5,6 @@ const { capitalize } = require('@pixelwelders/tlh-universe-util');
 const { MessageEmbed } = require('discord.js');
 const Fuse = require('fuse.js');
 
-// Create an array of emojis, one for each letter.
-const emojis = [
-  '🅰', '🅱', '🅲', '🅳', '🅴', '🅵', '🅶', '🅷', '🅸', '🅹', '🅺', '🅻', '🅼', '🅽', '🅾', '🅿', '🆀', '🆁', '🆂', '🆃', '🆄', '🆅', '🆆', '🆇', '🆈', '🆉'
-];
-// TODO Handle numbers above 26.
-const numToLetter = (num) => String.fromCharCode(0x41 + num);
-const letterToNum = (letter) => letter.toUpperCase().charCodeAt(0) - 0x41;
-const numToLetterEmoji = (num) => emojis[Math.min(num, 25)];
-
 const imageRoot = 'http://storage.googleapis.com/species-registry.appspot.com/images/inventory/icon';
 const defaultImage = 'parts_01.png';
 const getImage = (item, paramName = 'image') => {

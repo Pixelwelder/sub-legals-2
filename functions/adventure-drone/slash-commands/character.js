@@ -260,7 +260,7 @@ const showCharacter = async (
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('c2')
+    .setName('character')
     .setDescription(`Do stuff with your character.`)
     .addSubcommand(subcommand => subcommand
       .setName('create')

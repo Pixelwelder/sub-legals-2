@@ -12,6 +12,7 @@ const channels = require('./utils/channels');
 const { getFirestore } = require('firebase-admin/firestore');
 const newUser = require('./utils/newUser');
 const { UsersManual } = require('@pixelwelders/tlh-universe-data');
+const dms = require('./adventure-drone/dms');
 
 require('./utils/initFirebase');
 
@@ -23,6 +24,7 @@ const go = async () => {
     console.log('Ready!');
     const channel = client.channels.cache.get(adminChannelId);
     reactions.init();
+    dms.init();
     channel.send('Adventure Drone is ready!');
   });
 

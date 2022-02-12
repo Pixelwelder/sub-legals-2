@@ -21,6 +21,9 @@ const getClient = () => {
         Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
         Intents.FLAGS.DIRECT_MESSAGES,
         Intents.FLAGS.GUILD_MEMBERS
+      ],
+      partials: [
+        'CHANNEL'
       ]
     });
     addCommands(['slash-commands'], 'adventure-drone', client);
