@@ -207,7 +207,7 @@ module.exports = {
           await interaction.editReply({ content: 'You have no character to kill. Use `/character create` to create one.' });
         } else {
           await characterDocs.docs[0].ref.delete();
-          await interaction.editReply({ content: 'You killed your character :(' });
+          await interaction.editReply({ content: 'You killed your character. You monster.' });
         }
       }
     }[interaction.options.getSubcommand()];
