@@ -100,8 +100,6 @@ const getStatButtons = (interaction, { character, statChanges } = {}) => {
         .setStyle('SECONDARY')
         .setDisabled(stat.value + statChanges[statIndex] >= stat.max);
 
-      console.log(stat, statChanges[StatIndexes[stat.displayName]] >= stat.max)
-
       actionRow.addComponents(button);
     });
     return actionRow;
@@ -183,7 +181,6 @@ const showCharacter = async (
     const { customId } = i.component;
     collector.stop();
 
-    console.log('customId', customId);
     const newState = { ...state, ephemeral, mode, character, statChanges: [...statChanges] };
     let message = '';
     switch (customId) {
@@ -199,7 +196,6 @@ const showCharacter = async (
       break;
 
       case 'applyPointsReset':
-        console.log('reset');
         newState.statChanges = [0, 0, 0, 0, 0, 0, 0];
         message = 'Reset all points.';
         break;
@@ -246,13 +242,12 @@ const showCharacter = async (
     }
 
     // Start it all over again.
-    console.log('setting mode', newState.statChanges);
     showCharacter(interaction, newState);
     // await i.update({ content: 'A button was clicked! ' + Math.random() });
   });
 
   collector.on('end', collected => {
-    console.log(`Collected ${collected.size} items`);
+    // console.log(`Collected ${collected.size} items`);
   });
 };
 
