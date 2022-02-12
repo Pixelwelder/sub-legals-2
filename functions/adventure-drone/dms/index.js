@@ -2,6 +2,7 @@ const { getFirestore } = require('firebase-admin/firestore');
 const { getStorage } = require('firebase-admin/storage');
 const { v4: uuid } = require('uuid');
 const { getClient } = require("../client");
+const fetch = require('node-fetch');
 
 const contentTypeToExtension = (contentType) => {
   switch (contentType) {
@@ -53,31 +54,24 @@ const init = async () => {
       const bucket = storage.bucket();
       const file = bucket.file(`images/discord/characters/${filename}`);
 
-      // const localFile = await fetch(attachment.url);
-      // const blob = await localFile.blob();
-      // await file.upload(blob, {
-      //   metadata: {
-      //     contentType: attachment.contentType,
-      //     metadata: {
-      //       firebaseStorageDownloadTokens: uuid()
-      //     }
-      //   }
-      // });
-      // await bucket.upload(blob, { destination: `images/discord/characters/${filename}` });
-
-      // await file.save(attachment.url, {
-      //   contentType: attachment.contentType,
-      //   metadata: {
-      //     contentType: attachment.contentType,
-      //     firebaseStorageDownloadTokens: uuid(),
-      //   }
-      // });
+      const localFile = await fetch(attachment.url);
+      const buffer = await localFile.buffer();
+      await file.save(buffer, {
+        metadata: {
+          contentType: attachment.contentType,
+          metadata: {
+            firebaseStorageDownloadTokens: uuid()
+          }
+        }
+      });
       console.log('image uploaded');
 
       // Now add it to the character.
       const characterDoc = characterDocs.docs[0];
       await characterDoc.ref.update({ image: filename });
       console.log('firestore updated')
+
+      message.reply('Alrighty, I\'ve updated your character\'s image. The next time you use `/character show` or `/character examine` you will see your new avatar.');
     }
   });
 };

@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require("@discordjs/builders");
 const { MessageEmbed, MessageButton, MessageActionRow, ContextMenuInteraction } = require("discord.js");
 const { getFirestore } = require('firebase-admin/firestore');
+const { getStorage } = require('firebase-admin/storage');
 const { Character } = require('@pixelwelders/tlh-universe-data');
 const wrapArray = require('../../utils/wrapArray');
 
@@ -37,7 +38,11 @@ const getBar = (num, max, full = fullSquare, empty = emptySquare) => {
 const getCharacterEmbed = (interaction, { character, statChanges } = {}) => {
   const showStats = true;
   const inline = false;
-  const avatarUrl = interaction.user.avatarURL({ format: 'png', dynamic: true, size: 1024 });
+
+  // If the character has set an image URL, use it.
+  const avatarUrl = character.image
+    ? `http://storage.googleapis.com/species-registry.appspot.com/images/discord/characters/${character.image}`
+    : interaction.user.avatarURL({ format: 'png', dynamic: true, size: 1024 });
 
   const embed = new MessageEmbed()
     .setColor('0x000000')
@@ -74,15 +79,29 @@ const getCharacterEmbed = (interaction, { character, statChanges } = {}) => {
 const getUtilButtons = (interaction, { character }) => {
   const actionRow = new MessageActionRow();
 
-  const buttons = [];
-  if (character.statPoints > 0) {
+  const buttons = [
+    new MessageButton()
+      .setCustomId('setAvatar')
+      .setLabel(`Set Avatar Image`)
+      .setStyle('SECONDARY')
+  ];
+
+  if (character.image) {
     buttons.push(
       new MessageButton()
-        .setCustomId('applyPoints')
-        .setLabel(`Apply ${character.statPoints} Points`)
-        .setStyle('SECONDARY')
-    )
+      .setCustomId('deleteAvatar')
+      .setLabel(`Delete Avatar Image`)
+      .setStyle('DANGER')
+    );
   }
+
+  buttons.push(
+    new MessageButton()
+      .setCustomId('applyPoints')
+      .setLabel(`Apply ${character.statPoints} Points`)
+      .setStyle('PRIMARY')
+      .setDisabled(character.statPoints === 0)
+  )
 
   return buttons.length ? [actionRow.addComponents(...buttons)] : [];
 };
@@ -236,6 +255,24 @@ const showCharacter = async (
         update = `Added 1 point to ${customId}.`;
         break;
 
+      case 'setAvatar':
+        i.user.send('Hi! Please send me your new avatar as an attached image.');
+        break;
+
+      case 'deleteAvatar':
+        console.log('deleting avatar');
+        // Delete the user's avatar from firestore.
+        await getFirestore().collection('discord_characters').doc(character.uid).update({ image: '' });
+        newState.character.image = '';
+
+        // TODO Delete it from firebase storage. Otherwise we'll get .png, .jpg, etc.
+        // const storage = getStorage();
+        // const bucket = storage.bucket();
+        // const file = bucket.file(`images/discord/characters/${character.image}`);
+        // await file.delete();
+        update = 'Avatar deleted.';
+        break;
+
       default:
         newState.mode = CharacterEmbedModes.NORMAL;
         break;
@@ -282,20 +319,6 @@ module.exports = {
   // TODO Don't use reply.
   async execute(interaction, character) {
     // This function takes a number and randomly divides it into the specified number of numbers.
-    const split = (num, numParts) => {
-      // Create an array of zeroes.
-      const parts = new Array(numParts).fill(0);
-      // Loop num number of times.
-      for (let i = 0; i < num; i++) {
-        // Pick a random part.
-        const part = Math.floor(Math.random() * numParts);
-        // Increment that part.
-        parts[part]++;
-      }
-
-      return parts;
-    }
-
     const command = {
       'create': async () => {
         // Defer the reply, just in case.
@@ -318,7 +341,7 @@ module.exports = {
         });
 
         // Assign random stats.
-        // const numPoints = 21;
+        // const numPoints = character.statPoints;
         // const parts = split(21, 7);
         // character.stats.forEach((stat, index) => { stat.value = parts[index]; });
         

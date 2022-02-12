@@ -11,8 +11,12 @@ const settings = require('./utils/settings');
 const channels = require('./utils/channels');
 const { getFirestore } = require('firebase-admin/firestore');
 const newUser = require('./utils/newUser');
-const { UsersManual } = require('@pixelwelders/tlh-universe-data');
+const { UsersManual, InventoryItem, Character } = require('@pixelwelders/tlh-universe-data');
 const dms = require('./adventure-drone/dms');
+const split = require('./utils/split');
+const { showCharacter } = require('./adventure-drone/slash-commands-common/character-common');
+
+console.log('+++ UsersManual', new UsersManual({}));
 
 require('./utils/initFirebase');
 
@@ -64,7 +68,22 @@ const go = async () => {
     // TODO This will create one every time they join.
     const doc = getFirestore().collection('discord_inventory').doc();
     const item = new UsersManual({ uid: doc.id, username: member.user.username, userUid: member.user.id });
-    await doc.set(item);
+    await doc.set(JSON.parse(JSON.stringify(item)));
+
+    // Create a character for the new user.
+    const ref = getFirestore().collection('discord_characters').doc();
+    const character = new Character({
+      uid: ref.id,
+      displayName: member.user.username,
+      player: member.user.id,
+      statPoints: 10
+    });
+    // Assign random stats.
+    const parts = split(character.statPoints, 7);
+    character.stats.forEach((stat, index) => { stat.value = parts[index]; });
+    await ref.set(character);
+
+    console.log('created new character', character);
 
     // Welcome the new user aboard.
     // const channelId = '941289749119901736'; // TLH Test | #game-channel
