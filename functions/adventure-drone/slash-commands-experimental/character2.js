@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require("@discordjs/builders");
-const { MessageEmbed, MessageButton, MessageActionRow } = require("discord.js");
+const { MessageEmbed, MessageButton, MessageActionRow, ContextMenuInteraction } = require("discord.js");
 const { getFirestore } = require('firebase-admin/firestore');
 const { Character } = require('@pixelwelders/tlh-universe-data');
 const wrapArray = require('../../utils/wrapArray');
@@ -108,7 +108,7 @@ const getStatButtons = (interaction, { character, statChanges } = {}) => {
   const utilityRow = new MessageActionRow()
     .addComponents(
       new MessageButton()
-        .setCustomId('save')
+        .setCustomId('applyPointsSave')
         .setLabel(`Apply ${statsUsed} Points`)
         .setDisabled(statsUsed === 0)
         .setStyle('SUCCESS'),
@@ -194,6 +194,21 @@ const showCharacter = async (
       case 'applyPointsReset':
         newState.statChanges = [0, 0, 0, 0, 0, 0, 0];
         break;
+
+      case 'applyPointsSave': {
+        // Add stat changes to character.
+        const statsUsed = newState.statChanges.reduce((acc, stat) => acc + stat);
+        const newStats = character.stats.map((stat, index) => {
+          return { ...stat, value: stat.value + statChanges[index]};
+        });
+        const newCharacter = { ...character, stats: newStats, statPoints: character.statPoints - statsUsed };
+        await getFirestore().collection('discord_characters').doc(character.uid).set(newCharacter, { merge: true });
+
+        newState.mode = CharacterEmbedModes.NORMAL;
+        newState.character = newCharacter;
+        newState.statChanges = [0, 0, 0, 0, 0, 0, 0];
+        break;
+      }
 
       case StatNames.STRENGTH:
       case StatNames.PERCEPTION:
