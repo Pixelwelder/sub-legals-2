@@ -133,6 +133,8 @@ const CharacterEmbedModes = {
   EDIT_STATS: 'edit-stats'
 };
 
+let timeout;
+const time = 30 * 1000;
 const showCharacter = async (
   interaction,
   state = {}
@@ -175,29 +177,34 @@ const showCharacter = async (
   // ------------------------------- HANDLERS ------------------------------------
   // Now listen for button presses.
   const filterButtons = i => i.user.id === interaction.member.id;
-  const collector = interaction.channel.createMessageComponentCollector({ filter: filterButtons, time: 15000 });
+  const collector = interaction.channel.createMessageComponentCollector({ filter: filterButtons, time });
+  
+  clearInterval(timeout);
+  timeout = setTimeout(async () => {
+    // await interaction.editReply({ content: `_Expired_`, components: [], embeds: [] });
+  }, time);
 
   collector.on('collect', async i => {
     const { customId } = i.component;
     collector.stop();
 
     const newState = { ...state, ephemeral, mode, character, statChanges: [...statChanges] };
-    let message = '';
+    let update = '';
     switch (customId) {
       case 'applyPoints':
         newState.mode = CharacterEmbedModes.EDIT_STATS;
-        message = 'Applied all stats.';
+        update = 'Applied all stats.';
         break;
 
       case 'applyPointsCancel':
         newState.mode = CharacterEmbedModes.NORMAL;
         newState.statChanges = [0, 0, 0, 0, 0, 0, 0];
-        message = 'Cancelled.';
+        update = 'Cancelled.';
       break;
 
       case 'applyPointsReset':
         newState.statChanges = [0, 0, 0, 0, 0, 0, 0];
-        message = 'Reset all points.';
+        update = 'Reset all points.';
         break;
 
       case 'applyPointsSave': {
@@ -213,7 +220,7 @@ const showCharacter = async (
         newState.character = newCharacter;
         newState.statChanges = [0, 0, 0, 0, 0, 0, 0];
 
-        message = `${statsUsed} points applied.`;
+        update = `${statsUsed} points applied.`;
         break;
       }
 
@@ -226,7 +233,7 @@ const showCharacter = async (
       case StatNames.LUCK:
         const index = StatIndexes[customId];
         newState.statChanges[index] = Math.min(character.stats[index].max, newState.statChanges[index] + 1);
-        message = `Added 1 point to ${customId}.`;
+        update = `Added 1 point to ${customId}.`;
         break;
 
       default:
@@ -236,9 +243,9 @@ const showCharacter = async (
     
     if (newState.mode !== mode) {
       // Blank the buttons to avoid a bug.
-      await i.update({ components: [] });
+      await i.update({ content: `_${update}_`, components: [] });
     } else {
-      await i.update({ content: `_${message}_` });
+      await i.update({ content: `_${update}_` });
     }
 
     // Start it all over again.
@@ -307,7 +314,7 @@ module.exports = {
           uid: ref.id,
           displayName: interaction.user.username,
           player: interaction.user.id,
-          statPoints: 21
+          statPoints: 10
         });
 
         // Assign random stats.
