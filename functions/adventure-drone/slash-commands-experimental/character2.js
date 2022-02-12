@@ -90,15 +90,19 @@ const getUtilButtons = (interaction, { character }) => {
 const getStatButtons = (interaction, { character, statChanges } = {}) => {
   // Turn stats into MessageActionRows with five MessageButtons each.
   const stats2D = wrapArray(character.stats, 5);
-  const components = stats2D.map((row) => {
+  const components = stats2D.map((row, rowIndex) => {
     const actionRow = new MessageActionRow();
-    row.forEach((stat) => {
-      actionRow.addComponents(
-        new MessageButton()
-          .setCustomId(stat.displayName.toLowerCase())
-          .setLabel(`+ ${stat.displayName}`)
-          .setStyle('SECONDARY')
-      )
+    row.forEach((stat, colIndex) => {
+      const statIndex = rowIndex * 5 + colIndex;
+      const button = new MessageButton()
+        .setCustomId(stat.displayName.toLowerCase())
+        .setLabel(`+ ${stat.displayName}`)
+        .setStyle('SECONDARY')
+        .setDisabled(stat.value + statChanges[statIndex] >= stat.max);
+
+      console.log(stat, statChanges[StatIndexes[stat.displayName]] >= stat.max)
+
+      actionRow.addComponents(button);
     });
     return actionRow;
   });
@@ -141,10 +145,9 @@ const showCharacter = async (
     character: _character = null,
     statChanges = [0, 0, 0, 0, 0, 0, 0] // Change per stat.
   } = state;
-  console.log('');
-  console.log('showCharacter', state);
+  const showControls = ephemeral; // Only show controls if this is private.
 
-  // Get the character if we don't have.
+  // Get the character if we don't have it.
   let character = _character;
   if (!_character) {
     // Get the character and bail early if we don't have one.
@@ -159,13 +162,14 @@ const showCharacter = async (
   const embed = getCharacterEmbed(interaction, { character, statChanges });
 
   // Get buttons based on state.
-  const getComponents = {
-    [CharacterEmbedModes.NORMAL]: getUtilButtons,
-    [CharacterEmbedModes.EDIT_STATS]: getStatButtons
-  }[mode]
-
-  // Now get the buttons.
-  const components = getComponents(interaction, { character, statChanges });
+  let components = [];
+  if (showControls) {
+    const getComponents = {
+      [CharacterEmbedModes.NORMAL]: getUtilButtons,
+      [CharacterEmbedModes.EDIT_STATS]: getStatButtons
+    }[mode];
+    components = getComponents(interaction, { character, statChanges });
+  }
 
   // Send the embed.
   const message = await interaction.editReply({ embeds: [embed], components });
@@ -181,18 +185,23 @@ const showCharacter = async (
 
     console.log('customId', customId);
     const newState = { ...state, ephemeral, mode, character, statChanges: [...statChanges] };
+    let message = '';
     switch (customId) {
       case 'applyPoints':
         newState.mode = CharacterEmbedModes.EDIT_STATS;
+        message = 'Applied all stats.';
         break;
 
       case 'applyPointsCancel':
         newState.mode = CharacterEmbedModes.NORMAL;
         newState.statChanges = [0, 0, 0, 0, 0, 0, 0];
+        message = 'Cancelled.';
       break;
 
       case 'applyPointsReset':
+        console.log('reset');
         newState.statChanges = [0, 0, 0, 0, 0, 0, 0];
+        message = 'Reset all points.';
         break;
 
       case 'applyPointsSave': {
@@ -207,6 +216,8 @@ const showCharacter = async (
         newState.mode = CharacterEmbedModes.NORMAL;
         newState.character = newCharacter;
         newState.statChanges = [0, 0, 0, 0, 0, 0, 0];
+
+        message = `${statsUsed} points applied.`;
         break;
       }
 
@@ -218,7 +229,8 @@ const showCharacter = async (
       case StatNames.AGILITY:
       case StatNames.LUCK:
         const index = StatIndexes[customId];
-        newState.statChanges[index] ++;
+        newState.statChanges[index] = Math.min(character.stats[index].max, newState.statChanges[index] + 1);
+        message = `Added 1 point to ${customId}.`;
         break;
 
       default:
@@ -230,7 +242,7 @@ const showCharacter = async (
       // Blank the buttons to avoid a bug.
       await i.update({ components: [] });
     } else {
-      await i.update({ content: `Added +1 ${customId}` });
+      await i.update({ content: `_${message}_` });
     }
 
     // Start it all over again.
@@ -239,7 +251,9 @@ const showCharacter = async (
     // await i.update({ content: 'A button was clicked! ' + Math.random() });
   });
 
-  collector.on('end', collected => console.log(`Collected ${collected.size} items`));
+  collector.on('end', collected => {
+    console.log(`Collected ${collected.size} items`);
+  });
 };
 
 module.exports = {
@@ -298,13 +312,13 @@ module.exports = {
           uid: ref.id,
           displayName: interaction.user.username,
           player: interaction.user.id,
-          statPoints: 0
+          statPoints: 21
         });
 
         // Assign random stats.
-        const numPoints = 21;
-        const parts = split(21, 7);
-        character.stats.forEach((stat, index) => { stat.value = parts[index]; });
+        // const numPoints = 21;
+        // const parts = split(21, 7);
+        // character.stats.forEach((stat, index) => { stat.value = parts[index]; });
         
         // Save.
         await ref.set(character, { merge: true });
