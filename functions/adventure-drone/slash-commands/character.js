@@ -37,14 +37,14 @@ const getBar = (num, max, full = fullSquare, empty = emptySquare) => {
   return `${full.repeat(num)}${empty.repeat(max - num)}`;
 };
 
-const getCharacterEmbed = (interaction, { character, statChanges } = {}) => {
+const getCharacterEmbed = (user, { character, statChanges } = {}) => {
   const showStats = true;
   const inline = false;
 
   // If the character has set an image URL, use it.
   const avatarUrl = character.image
     ? `http://storage.googleapis.com/species-registry.appspot.com/images/discord/characters/${character.image}`
-    : interaction.user.avatarURL({ format: 'png', dynamic: true, size: 1024 });
+    : user.avatarURL({ format: 'png', dynamic: true, size: 1024 });
 
   const embed = new MessageEmbed()
     .setColor('0x000000')
@@ -180,7 +180,7 @@ const showCharacter = async (
     character = characterDocs.docs[0].data();
   }
 
-  const embed = getCharacterEmbed(interaction, { character, statChanges });
+  const embed = getCharacterEmbed(interaction.user, { character, statChanges });
 
   // Get buttons based on state.
   let components = [];

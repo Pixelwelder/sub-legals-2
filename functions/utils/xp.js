@@ -9,9 +9,6 @@ const toTier = (xp, multiplier = 0.0001, floor = 1.8) => {
   return ((Math.log(1 + (xp + boost) * multiplier) / base) + floor).toFixed(2);
 };
 
-console.log(toTier(10));
-console.log(toTier(350000));
-
 module.exports = {
   toTier
 };
