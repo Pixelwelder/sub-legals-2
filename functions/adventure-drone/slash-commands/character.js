@@ -4,6 +4,8 @@ const { getFirestore } = require('firebase-admin/firestore');
 const { getStorage } = require('firebase-admin/storage');
 const { Character } = require('@pixelwelders/tlh-universe-data');
 const wrapArray = require('../../utils/wrapArray');
+const xp = require('../../utils/xp');
+const ordinal = require('../../utils/ordinal');
 
 const StatNames = {
   STRENGTH: 'strength',
@@ -299,10 +301,10 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('character')
     .setDescription(`Do stuff with your character.`)
-    .addSubcommand(subcommand => subcommand
-      .setName('create')
-      .setDescription('Create your character (private).')
-    )
+    // .addSubcommand(subcommand => subcommand
+    //   .setName('create')
+    //   .setDescription('Create your character (private).')
+    // )
     .addSubcommand(subcommand => subcommand
       .setName('examine')
       .setDescription('Examine your character (private).')
@@ -311,9 +313,13 @@ module.exports = {
       .setName('show')
       .setDescription('Show your character to the room (public).')
     )
+    // .addSubcommand(subcommand => subcommand
+    //   .setName('kill')
+    //   .setDescription('Kill your character (private).')
+    // )
     .addSubcommand(subcommand => subcommand
-      .setName('kill')
-      .setDescription('Kill your character (private).')
+      .setName('clone')
+      .setDescription('Kills your current character and creates a new one.')
     ),
     
   // TODO Don't use reply.
@@ -333,16 +339,28 @@ module.exports = {
         const ref = characterDocs.size > 0 ? characterDocs.docs[0].ref : getFirestore().collection('discord_characters').doc();
 
         // Create the character.
+
+        // We give the player 1 point for ever 0.1 rank.
+        const userDoc = await getFirestore().collection('discord_users').doc(userUid).get();
+        const user = userDoc.data();
+
+        const userTier = xp.toTier(user.xp);
+        const userGrowth = userTier - 1.8;
+        // Add a point for every tenth of a tier they've gained.
+        const defaultPoints = 10;
+        const earnedPoints = Math.floor(userGrowth * 10);
+        const statPoints = defaultPoints + earnedPoints;
+
         const character = new Character({
           uid: ref.id,
           displayName: interaction.user.username,
           player: interaction.user.id,
-          statPoints: 10
+          statPoints
         });
 
         // Assign random stats.
         // const numPoints = character.statPoints;
-        // const parts = split(21, 7);
+        // const parts = split(statPoints, 7);
         // character.stats.forEach((stat, index) => { stat.value = parts[index]; });
         
         // Save.
@@ -375,6 +393,60 @@ module.exports = {
           await characterDocs.docs[0].ref.delete();
           await interaction.editReply({ content: 'You killed your character. You monster.' });
         }
+      },
+      'clone': async () => {
+        await interaction.deferReply({ ephemeral: true });
+        // Remove from firebase.
+        // TODO This should get the one that the player object references.
+        const characterDocs = await getFirestore().collection('discord_characters').where('player', '==', interaction.user.id).get();
+        if (characterDocs.empty) {
+          console.log('Player did not have a character.');
+        } else {
+          await characterDocs.docs[0].ref.delete();
+        }
+        
+        // Now create a new one.
+        const userUid = interaction.member.id;
+        const ref = getFirestore().collection('discord_characters').doc();
+
+        // Create the character.
+        // We give the player 1 point for ever 0.1 rank.
+        const userDoc = await getFirestore().collection('discord_users').doc(userUid).get();
+        const user = userDoc.data();
+
+        const userTier = xp.toTier(user.xp);
+        const userGrowth = userTier - 1.8;
+        // Add a point for every tenth of a tier they've gained.
+        const defaultPoints = 10;
+        const earnedPoints = Math.floor(userGrowth * 10);
+        const statPoints = defaultPoints + earnedPoints;
+
+        const character = new Character({
+          uid: ref.id,
+          displayName: interaction.user.username,
+          player: interaction.user.id,
+          statPoints
+        });
+
+        // Assign random stats.
+        // const numPoints = character.statPoints;
+        // const parts = split(statPoints, 7);
+        // character.stats.forEach((stat, index) => { stat.value = parts[index]; });
+        
+        // Save.
+        await ref.set(character, { merge: true });
+
+        // Save how many times the player has cloned.
+        const numClones = (user.meta.numClones || 0) + 1;
+        userDoc.ref.update({
+          meta: { ...user.meta, numClones }
+        });
+        
+        // Display.
+        await showCharacter(interaction);
+
+        // Message publicly.
+        interaction.channel.send(`<@${interaction.user.id}> is dead. Everyone say hello to their ${ordinal(numClones)} clone, <@${interaction.user.id}>.`);
       }
     }[interaction.options.getSubcommand()];
 

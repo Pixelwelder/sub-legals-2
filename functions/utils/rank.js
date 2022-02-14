@@ -1,4 +1,4 @@
-const admin = require('firebase-admin');
+const { getFirestore } = require('firebase-admin/firestore');
 // const isCommand = require('./isCommand');
 const channels = require('./channels');
 const xp = require('./xp');
@@ -19,7 +19,7 @@ let ranksDoc;  // The Firestore doc
 let ranks;     // An array of rank objects.
 let ranksById; // All rank objects keyed by user ID.
 const initialize = async () => {
-  const collection = admin.firestore().collection('discord_meta');
+  const collection = getFirestore().collection('discord_meta');
   ranksDoc = await collection.doc('ranks').get();
 
   if (!ranksDoc.exists) {
@@ -73,6 +73,13 @@ const update = async (message, _xpToAdd) => {
 
   if (xp.toTier(rankUser.xp) > xp.toTier(oldXP) || isNew) {
     // const tag = message.member.user.tag.split('#')[0];
+    // The user has leveled up. Add a point to their character's doc.
+    // const characterDoc = await getFirestore().collection('discord_characters').doc(id).get();
+    // const character = characterDoc.data();
+    // if (character) {
+
+    // }
+
     const tag = `<@${message.author.id}>`;
     const channel = channels.getBotChannel();
     if (channel) {
