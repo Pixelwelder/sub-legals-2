@@ -6,6 +6,8 @@ const { Character } = require('@pixelwelders/tlh-universe-data');
 const wrapArray = require('../../utils/wrapArray');
 const xp = require('../../utils/xp');
 const ordinal = require('../../utils/ordinal');
+const { getBar, fullSquare, emptySquare, fullPoint, emptyPoint } = require('../../utils/getBar');
+const getCharacterEmbed = require('../../utils/getCharacterEmbed');
 
 const StatNames = {
   STRENGTH: 'strength',
@@ -25,57 +27,6 @@ const StatIndexes = {
   [StatNames.INTELLIGENCE]: 4,
   [StatNames.AGILITY]: 5,
   [StatNames.LUCK]: 6
-};
-
-const fullSquare = '🟥';
-const emptySquare = '⬛';
-const fullPoint = '🔴';
-const emptyPoint = '⚫';
-// Converts a number and a max to a bar made of emojis.
-// The bar has max number of segments.
-const getBar = (num, max, full = fullSquare, empty = emptySquare) => {
-  return `${full.repeat(num)}${empty.repeat(max - num)}`;
-};
-
-const getCharacterEmbed = (user, { character, statChanges } = {}) => {
-  const showStats = true;
-  const inline = false;
-
-  // If the character has set an image URL, use it.
-  const avatarUrl = character.image
-    ? `http://storage.googleapis.com/species-registry.appspot.com/images/discord/characters/${character.image}`
-    : user.avatarURL({ format: 'png', dynamic: true, size: 1024 });
-
-  const embed = new MessageEmbed()
-    .setColor('0x000000')
-    .setTitle(character.displayName)
-    .setImage(avatarUrl);
-
-  if (showStats) {
-    const fields = character.stats.map((stat, index) => {
-      let value = getBar(stat.value, stat.max);
-      if (statChanges && statChanges[index]) {
-        value = `${value} ${fullPoint.repeat(statChanges[index])}`;
-      }
-
-      return { name: stat.displayName, value, inline };
-    });
-
-    if (character.statPoints > 0) {
-      // Add all stat changes
-      const statsUsed = statChanges.reduce((acc, stat) => acc + stat);
-      fields.push({
-        name: 'Available points',
-        value: getBar(character.statPoints - statsUsed, character.statPoints, fullPoint, emptyPoint),
-        inline
-      });
-    }
-
-    // fields.push({ name: 'Available points', value: getBar(character.statPoints, character.statPoints, point) });
-    embed.setFields(fields);
-  }
-
-  return embed;
 };
 
 const getUtilButtons = (interaction, { character }) => {

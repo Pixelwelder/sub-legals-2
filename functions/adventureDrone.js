@@ -14,7 +14,7 @@ const newUser = require('./utils/newUser');
 const { UsersManual, InventoryItem, Character } = require('@pixelwelders/tlh-universe-data');
 const dms = require('./adventure-drone/dms');
 const split = require('./utils/split');
-const { showCharacter } = require('./adventure-drone/slash-commands-common/character-common');
+const getCharacterEmbed = require('./utils/getCharacterEmbed');
 
 console.log('+++ UsersManual', new UsersManual({}));
 
@@ -54,43 +54,51 @@ const go = async () => {
     const role = guild.roles.cache.get(PLAYER_ROLE);
     console.log('guildMemberAdd', member.user.username, member.user.id);
 
-    // Create a new user in the firestore database
     const existing = await getFirestore().collection('discord_users').doc(member.user.id).get();
-    if (!existing.exists) {
+
+    let characterDoc;
+    let character;
+    if (existing.exists) {
+      console.log('user exists: they have returned!');
+      // Get their character.
+      // TODO Reverse the reference.
+      console.log('searching for', member.user.id);
+      const characterDocs = await getFirestore().collection('discord_characters').where('player', '==', member.user.id).get();
+      console.log('found', characterDocs.docs.length);
+      characterDoc = characterDocs.docs[0];
+      character = characterDoc.data();
+    } else {
+      // Create the user.
       await getFirestore().collection('discord_users').doc(member.user.id)
         .set(newUser({ displayName: member.user.username, uid: member.user.id }), { merge: true });
       console.log('new user created');
-    } else {
-      console.log('user exists: they have returned!');
+
+      // Create a character for the new user.
+      characterDoc = getFirestore().collection('discord_characters').doc();
+      character = new Character({
+        uid: characterDoc.id,
+        displayName: member.user.username,
+        player: member.user.id,
+        statPoints: 0
+      });
+      const parts = split(10, 7);
+      character.stats.forEach((stat, index) => { stat.value = parts[index]; });
+      await characterDoc.set(character);
+
+      // Add an inventory item.
+      const doc = getFirestore().collection('discord_inventory').doc();
+      const item = new UsersManual({ uid: doc.id, username: member.user.username, userUid: member.user.id });
+      await doc.set(JSON.parse(JSON.stringify(item)));
     }
 
-    // Create an inventory item for the new user.
-    // TODO This will create one every time they join.
-    const doc = getFirestore().collection('discord_inventory').doc();
-    const item = new UsersManual({ uid: doc.id, username: member.user.username, userUid: member.user.id });
-    await doc.set(JSON.parse(JSON.stringify(item)));
-
-    // Create a character for the new user.
-    const ref = getFirestore().collection('discord_characters').doc();
-    const character = new Character({
-      uid: ref.id,
-      displayName: member.user.username,
-      player: member.user.id,
-      statPoints: 10
-    });
-    // Assign random stats.
-    const parts = split(character.statPoints, 7);
-    character.stats.forEach((stat, index) => { stat.value = parts[index]; });
-    await ref.set(character);
-
-    console.log('created new character', character);
-
     // Welcome the new user aboard.
-    // const channelId = '941289749119901736'; // TLH Test | #game-channel
-    const channelId = '685518066402328705'; // TLH | #general
+    const channelId = '941289749119901736'; // TLH Test | #game-channel
+    // const channelId = '685518066402328705'; // TLH | #general
     const channel = client.channels.cache.get(channelId);
 
-    channel.send('Hi ' + member.user.toString() + '! I\'ve taken the liberty of adding a User\'s Manual to your inventory. You can check your inventory by typing `/inventory list`.')
+    channel.send(`A new scientist has arrived in Airlock ${Math.floor(Math.random() * 20) + 1}. Everyone please welcome ${member.user.toString()} to our humble orbital station.`);
+    channel.send({ embeds: [getCharacterEmbed(member.user, { character })] });
+    channel.send(member.user.toString() + ', I\'ve taken the liberty of adding a User\'s Manual to your inventory. You can check your inventory by typing `/inventory list`.')
     
     // if (!channel || !role) return;
 
