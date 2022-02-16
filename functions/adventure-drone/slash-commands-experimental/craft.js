@@ -44,11 +44,11 @@ function DroneSchematic(overrides) {
     displayName: 'Generic Drone',
     data: {
       parts: [
-        { type: 'type', includes: [ItemTypes.CHASSIS] },
-        { type: 'type', includes: [ItemTypes.CORE] },
-        { type: 'type', includes: [ItemTypes.SENSOR] },
-        { type: 'type', includes: [ItemTypes.DRIVETRAIN] },
-        { type: 'type', includes: [ItemTypes.TOOL] }
+        { type: 'type', requires: [ItemTypes.CHASSIS], displayName: 'Chassis' },
+        { type: 'type', requires: [ItemTypes.CORE], displayName: 'Core' },
+        { type: 'type', requires: [ItemTypes.SENSOR], displayName: 'Sensor' },
+        { type: 'type', requires: [ItemTypes.DRIVETRAIN], displayName: 'Drivetrain' },
+        { type: 'type', requires: [ItemTypes.TOOL], displayName: 'Tool' }
       ]
     },
     ...overrides
@@ -118,31 +118,63 @@ const getMainMenuEmbed = ({ thread, inventory }) => {
   return { embeds: [embed], components };
 };
 
-const getMinionEmbed = ({ thread }) => {
+const getMinionEmbed = (state) => {
+  const { thread, inventory, id } = state;
+  const { data } = thread;
+
+  // Grab the schematic.
+  const schematic = inventory.find(item => item.uid === data.id);
+  if (!schematic) {
+    // ABORT.
+    console.log('ABORT', thread);
+    getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(id).delete();
+    return { embeds: [], components: [], content: 'The Nanoforge has encountered a catastrophic error. Please try again.' };
+  }
+
+  console.log('-------------------');
+  console.log(thread);
+  console.log(inventory.length);
+  console.log(data);
+  console.log('schematic', !!schematic);
+  console.log('-------------------');
+
   const embed = new MessageEmbed()
     .setColor('0x000000')
     .setTitle('NANOFORGE | CREATE MINION')
     .setImage(getImage(thread));
 
-    const actionRow = new MessageActionRow();
-    const buttons = [
+    // Now we go through the required items.
+    let enabled = true;
+    const partsRow = new MessageActionRow()
+      .addComponents(
+        schematic.data.parts.map(part => {
+          console.log('=', part);
+          const item = inventory.find(item => part.requires.includes(item.type));
+          console.log('+', item?.displayName, item?.type);
+          if (!item) enabled = false;
+          return new MessageButton()
+            .setCustomId(`craft-${item?.type}`)
+            .setLabel(part.displayName)
+            .setStyle('SECONDARY')
+            .setDisabled(!item)
+        })
+      );
+
+    const utilityRow = new MessageActionRow()
+    .addComponents([
+      new MessageButton()
+        .setCustomId('forge')
+        .setLabel('Forge')
+        .setStyle('PRIMARY')
+        .setDisabled(!enabled),
+
       new MessageButton()
         .setCustomId('back-to-main-menu')
         .setLabel('< Back')
         .setStyle('SECONDARY')
-    ];
-
-    // Creating a minion requires five components: one in each of the following categories:
-    // - Chassis
-    // - Core
-    // - Tool
-    // - Sensor
-    // - Drivetrain
-
+    ]);
   
-    actionRow.addComponents(buttons);
-  
-    return { embeds: [embed], components: [actionRow] };
+    return { embeds: [embed], components: [utilityRow, partsRow] };
 };
 
 const getResponse = (state) => {
@@ -169,12 +201,14 @@ const getInventory = async (id) => {
 const respond = async (interaction, state = {}) => {
   const {
     thread: _thread,
-    inventory: _inventory
+    inventory: _inventory,
+    id: _id
   } = state;
 
-  const thread = _thread || await getThread(interaction.member.id);
-  const inventory = _inventory || await getInventory(interaction.member.id);
-  const response = getResponse({ ...state, thread, inventory });
+  const id = _id || interaction.member.id;
+  const thread = _thread || await getThread(id);
+  const inventory = _inventory || await getInventory(id);
+  const response = getResponse({ ...state, thread, inventory, id });
   interaction.editReply(response);
 
   // ------------------------------- HANDLERS ------------------------------------
