@@ -9,7 +9,9 @@ const { getClient } = require('../client');
 const imageRoot = 'http://storage.googleapis.com/species-registry.appspot.com/images/inventory/icon';
 const defaultImage = 'parts_01.png';
 const getImage = (item, paramName = 'image') => {
-  const { image: { [paramName]: url = defaultImage } = {} } = item;
+  // const { image: { [paramName]: url = defaultImage } = {} } = item;
+  console.log('getting image from', item);
+  const { image: url = defaultImage } = item;
   return `${imageRoot}/${url}`;
 }
 
@@ -150,7 +152,7 @@ module.exports = {
 
         const fields = items.map((item, index) => {
           return {
-            name: `${index + 1} | ${item.displayName || 'Item'}`,
+            name: `${item.displayName || 'Item'} ${item.type ? '\`' + item.type.toUpperCase() + '\`' : ''}`,
             value: item.description || 'An interesting item.'
           };
         });

@@ -61,17 +61,18 @@ const TEMP_createParts = async (interaction) => {
   // Create a bunch of parts in firestore and give them all to USKillbotics (685513488411525164).
   const firestore = getFirestore();
   [ItemTypes.CHASSIS, ItemTypes.CORE, ItemTypes.SENSOR, ItemTypes.DRIVETRAIN, ItemTypes.TOOL]
-    .forEach(async ([key, value]) => {
+    .forEach(async type => {
       const doc = getFirestore().collection('discord_inventory').doc();
       const item = new PersonalInventoryItem({
         uid: doc.id,
         player: adminId,
-        type: value,
-        displayName: `${value} ${Math.floor(Math.random() * 100)}`,
-        image: 'http://storage.googleapis.com/species-registry.appspot.com/images/inventory/icon/parts_13.png'
+        type,
+        displayName: `${capitalize(type)} ${Math.floor(Math.random() * 100)}`,
+        description: 'Looks pretty beat up.',
+        image: 'parts_13.png'
       });
-    await doc.set(item);
-  });
+      await doc.set(item);
+    });
 
   // Create schematic.
   const doc = getFirestore().collection('discord_inventory').doc();
@@ -79,7 +80,7 @@ const TEMP_createParts = async (interaction) => {
     displayName: 'Random Drone',
     uid: doc.id,
     player: adminId,
-    image: 'http://storage.googleapis.com/species-registry.appspot.com/images/inventory/icon/parts_12.png'
+    image: `parts_${Math.floor(Math.random() * 45)}.png`
   });
   await doc.set(item);
   interaction.editReply('Test items created.');
