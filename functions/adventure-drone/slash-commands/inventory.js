@@ -4,6 +4,7 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const { capitalize } = require('@pixelwelders/tlh-universe-util');
 const { MessageEmbed } = require('discord.js');
 const Fuse = require('fuse.js');
+const { getClient } = require('../client');
 
 const imageRoot = 'http://storage.googleapis.com/species-registry.appspot.com/images/inventory/icon';
 const defaultImage = 'parts_01.png';
@@ -174,7 +175,6 @@ module.exports = {
 
       // Give the inventory item to another user.
       'give': async () => {
-        // Do NOT defer the reply.
         await interaction.deferReply({ ephemeral: true });
 
         // Get the item
@@ -190,6 +190,11 @@ module.exports = {
         // Announce the transfer.
         interaction.editReply(`You gave <@${id}> ${item.displayName || 'an item'}.`);
         interaction.channel.send(`<@${id}> has received <@${interaction.user.id}>'s ${item.displayName || 'item'}!`, { ephemeral: false });
+
+        // Is it this bot?
+        if (id === getClient().user.id) {
+          // TODO
+        }
       }
     }[interaction.options.getSubcommand()];
 

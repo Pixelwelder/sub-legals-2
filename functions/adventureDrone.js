@@ -16,8 +16,6 @@ const dms = require('./adventure-drone/dms');
 const split = require('./utils/split');
 const getCharacterEmbed = require('./utils/getCharacterEmbed');
 
-console.log('+++ UsersManual', new UsersManual({}));
-
 require('./utils/initFirebase');
 
 const go = async () => {
@@ -88,7 +86,9 @@ const go = async () => {
       // Add an inventory item.
       const doc = getFirestore().collection('discord_inventory').doc();
       const item = new UsersManual({ uid: doc.id, username: member.user.username, userUid: member.user.id });
-      await doc.set(JSON.parse(JSON.stringify(item)));
+      const obj = JSON.parse(JSON.stringify(item));
+      console.log('manual', item);
+      await doc.set(item);
     }
 
     // Welcome the new user aboard.
