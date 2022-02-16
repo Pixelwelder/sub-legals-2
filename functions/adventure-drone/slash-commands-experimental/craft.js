@@ -16,7 +16,8 @@ function Thread() {
   return {
     created: new Date().getTime(),
     updated: new Date().getTime(),
-    progress: 0
+    dialogId: 0,
+    data: {}
   };
 }
 
@@ -87,13 +88,11 @@ const TEMP_createParts = async (interaction) => {
 };
 
 const imageRoot = 'http://storage.googleapis.com/species-registry.appspot.com/images/discord/ui';
-const getImage = ({ progress }) => {
+const getImage = ({ dialogId = 0 } = {}) => {
   return `${imageRoot}/nanoforge.jpg`;
 };
 
 const getMainMenuEmbed = ({ thread, inventory }) => {
-  
-  console.log('getMainMenuEmbed', inventory.length);
   const embed = new MessageEmbed()
     .setColor('0x000000')
     .setTitle('NANOFORGE | ONLINE')
@@ -108,7 +107,7 @@ const getMainMenuEmbed = ({ thread, inventory }) => {
     const actionRow = new MessageActionRow();
     const buttons = schematics.map(schematic => {
       return new MessageButton()
-        .setCustomId(schematic.uid)
+        .setCustomId(`schematic-${schematic.uid}`)
         .setLabel(schematic.displayName)
         .setStyle('SECONDARY');
     });
@@ -150,7 +149,7 @@ const getResponse = (state) => {
   const embedFactory = {
     [Progress.MAIN_MENU]: getMainMenuEmbed,
     [Progress.MINION]: getMinionEmbed
-  }[state.thread.progress];
+  }[state.thread.dialogId];
 
   if (embedFactory) return embedFactory(state);
 };
@@ -175,8 +174,7 @@ const respond = async (interaction, state = {}) => {
 
   const thread = _thread || await getThread(interaction.member.id);
   const inventory = _inventory || await getInventory(interaction.member.id);
-  const newState = { thread, inventory };
-  const response = getResponse(newState);
+  const response = getResponse({ ...state, thread, inventory });
   interaction.editReply(response);
 
   // ------------------------------- HANDLERS ------------------------------------
@@ -186,29 +184,39 @@ const respond = async (interaction, state = {}) => {
     // Stop collecting.
     collector.stop('manual');
 
+    // Create new state.
+    const newState = { ...state, data: { ...state.data } };
+
     // Grab ID, then blank buttons to avoid bug.
     const { customId } = i.component;
     await i.update({ components: [] });
 
     switch (customId) {
       case 'minion': {
-        // Save thread progress.
-        const newThread = { ...thread, progress: Progress.MINION, updated: new Date().getTime() };
-        await getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(interaction.member.id).set(newThread);
-        respond(interaction, { ...newState, thread: newThread });
         break;
       }
 
       case 'back-to-main-menu': {
-        const newThread = { ...thread, progress: Progress.MAIN_MENU, updated: new Date().getTime() };
+        const newThread = { ...thread, dialogId: Progress.MAIN_MENU, updated: new Date().getTime() };
         await getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(interaction.member.id).set(newThread);
         respond(interaction, { ...newState, thread: newThread });
         break;
       }
 
       default: {
-        // TODO Reset?
-        break;
+        if (customId.startsWith('schematic-')) {
+          const [, schematicId] = customId.split('-');
+          // TODO Gotta test this.
+          const newThread = { ...thread, dialogId: Progress.MINION, data: { id: schematicId }, updated: new Date().getTime() };
+          await getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(interaction.member.id).set(newThread);
+          respond(interaction, { ...newState, thread: newThread });
+          break;
+        }
+        // Save thread progress.
+        // const newThread = { ...thread, dialogId: Progress.MINION, updated: new Date().getTime() };
+        // await getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(interaction.member.id).set(newThread);
+        // respond(interaction, { ...newState, thread: newThread });
+        // break;
       }
     }
   });
