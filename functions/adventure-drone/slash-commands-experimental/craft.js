@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageButton, MessageActionRow, MessageEmbed } = require('discord.js');
 const { getFirestore } = require('firebase-admin/firestore');
+const { getStorage } = require('firebase-admin/storage');
 const { getClient } = require('../client');
 
 const time = 30 * 1000;
@@ -18,11 +19,18 @@ function Thread() {
   };
 }
 
-const getMainMenuEmbed = () => {
+const imageRoot = 'http://storage.googleapis.com/species-registry.appspot.com/images/discord/ui';
+const getImage = ({ progress }) => {
+  return `${imageRoot}/nanoforge.jpg`;
+};
+
+const getMainMenuEmbed = (thread) => {
+  
   const embed = new MessageEmbed()
     .setColor('0x000000')
-    .setTitle('Crafting - Main Menu')
-    .setDescription('What would you like to craft?');
+    .setTitle('NANOFORGE | ONLINE')
+    .setDescription('What would you like to craft?')
+    .setImage(getImage(thread));
 
   const actionRow = new MessageActionRow();
   const buttons = [
@@ -34,13 +42,14 @@ const getMainMenuEmbed = () => {
 
   actionRow.addComponents(buttons);
 
-  return { embeds: [embed], components: [actionRow] };
+  return { content: 'Forge has powered up.', embeds: [embed], components: [actionRow] };
 };
 
-const getMinionEmbed = () => {
+const getMinionEmbed = (thread) => {
   const embed = new MessageEmbed()
     .setColor('0x000000')
-    .setTitle('Craft Minion');
+    .setTitle('NANOFORGE | CREATE MINION')
+    .setImage(getImage(thread));
 
     const actionRow = new MessageActionRow();
     const buttons = [
@@ -52,18 +61,16 @@ const getMinionEmbed = () => {
   
     actionRow.addComponents(buttons);
   
-    return { embeds: [embed], components: [actionRow] };
+    return { content: 'Forge has switched to Minion Mode.', embeds: [embed], components: [actionRow] };
 };
 
-const getResponse = ({ progress }) => {
-  switch (progress) {
-    case Progress.MAIN_MENU:
-      return getMainMenuEmbed();
-    case Progress.MINION:
-      return getMinionEmbed();
-    default:
-      return null;
-  }
+const getResponse = (thread) => {
+  const embedFactory = {
+    [Progress.MAIN_MENU]: getMainMenuEmbed,
+    [Progress.MINION]: getMinionEmbed
+  }[thread.progress];
+
+  if (embedFactory) return embedFactory(thread);
 };
 
 const getThread = async (id) => {
@@ -119,7 +126,7 @@ const respond = async (interaction, state = {}) => {
   collector.on('end', async (collected, reason) => {
     if (reason === 'time') {
       // Out of time. Clear the response.
-      await interaction.editReply({ embeds: [], components: [], content: 'Expired.' });
+      await interaction.editReply({ embeds: [], components: [], content: 'The forge has powered down.' });
     }
   });
 };
