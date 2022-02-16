@@ -17,6 +17,7 @@ const split = require('./utils/split');
 const getCharacterEmbed = require('./utils/getCharacterEmbed');
 
 require('./utils/initFirebase');
+require('./adventure-drone/store');
 
 const go = async () => {
   console.log('Initializing Drone');

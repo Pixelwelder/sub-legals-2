@@ -4,7 +4,15 @@ const { getFirestore } = require('firebase-admin/firestore');
 const { getStorage } = require('firebase-admin/storage');
 const { getClient } = require('../client');
 const { PersonalInventoryItem } = require('@pixelwelders/tlh-universe-data');
+const store = require('../store');
+const { selectors: craftSelectors, actions: craftActions } = require('../store/craft');
 
+// -----------------------------------------------------------------------------
+
+
+
+
+// -----------------------------------------------------------------------------
 const time = 30 * 1000;
 
 const Progress = {
@@ -278,6 +286,11 @@ module.exports = {
     const command = {
       start: async () => {
         await interaction.deferReply({ ephemeral: true });
+
+        // Load the user data.
+        await store.dispatch(craftActions.loadData({ userId: interaction.member.id }));
+
+        // Respond.
         respond(interaction);
       },
       test: async () => {
