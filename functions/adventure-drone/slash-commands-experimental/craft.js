@@ -28,9 +28,9 @@ const getImage = ({ dialogId = 0 } = {}) => {
   return `${imageRoot}/nanoforge.jpg`;
 };
 
-const getAbort = (userId) => {
+const getAbort = (userId, response = {}) => {
   getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(userId).delete();
-  return { embeds: [], components: [], content: 'The Nanoforge has encountered a catastrophic error. Please try again.' };
+  return { embeds: [], components: [], content: 'The Nanoforge has encountered a catastrophic error. Please try again.', ...response };
 };
 
 const getMainMenuEmbed = (userId) => {
@@ -57,21 +57,36 @@ const getMainMenuEmbed = (userId) => {
   }
 
   // Add description.
-  embed.setDescription(`What would you like to craft? You have ${schematics.length} schematic${schematics.length === 1 ? '' : 's'}.`);
+  embed.setDescription(`You have ${schematics.length} schematic${schematics.length === 1 ? '' : 's'}.`);
   // const fields = schematics.map(schematic => ({ name: schematic.displayName, value: schematic.description || 'No description.' }));
   // embed.addFields(fields);
 
   return { embeds: [embed], components };
 };
 
-const getSchematicEmbed = (userId) => {
+const getSchematicEmbed = async (userId) => {
+  console.log('getSchematicEmbed');
   const { thread, inventory } = craftSelectors.select(store.getState())[userId];
   const { data } = thread;
   const { constructionProject } = data;
 
   // Grab the schematic.
   const schematic = inventory.find(item => item.uid === data.itemUid);
-  if (!schematic) return getAbort(userId);
+  if (!schematic) return getAbort(userId, { content: 'The schematic has disappeared.' });
+
+  // Do we have a construction project?
+  if (!constructionProject) {
+    // Create a new construction project.
+    const constructionProject = new ConstructionProject(schematic);
+    const newThread = { ...thread, data: { ...thread.data, constructionProject } };
+    await dispatch(craftActions.saveData({ userId, data: { thread: newThread } }));
+
+    // TODO Investigate this React-like approach.
+    // return { content: 'New construction' };
+    return getSchematicEmbed(userId);
+  }
+
+  console.log('constructionProject', constructionProject);
 
   // console.log('-------------------');
   // console.log(thread);
@@ -136,10 +151,11 @@ const getSchematicEmbed = (userId) => {
         .setDisabled(!enabled)
     ]);
   
-    return { embeds: [embed], components: [utilityRow, partsRow] };
+    return { embeds: [embed], components: [utilityRow] };
 };
 
 const getListEmbed = (userId) => {
+  console.log('getListEmbed');
   const { thread, inventory } = craftSelectors.select(store.getState())[userId];
   const { data } = thread;
   const { type } = data;
@@ -202,6 +218,7 @@ const getResponse = (userId) => {
   }[thread.dialogId];
 
   if (embedFactory) return embedFactory(userId);
+  return getAbort(userId);
 };
 
 // const getThread = async (id) => {
@@ -227,7 +244,8 @@ const respond = async (interaction) => {
   // const id = _id || interaction.member.id;
   // const thread = _thread || await getThread(id);
   // const inventory = _inventory || await getInventory(id);
-  const response = getResponse(userId);
+  const response = await getResponse(userId);
+  console.log('RESPONSE', response);
   interaction.editReply(response);
 
   // ------------------------------- HANDLERS ------------------------------------
@@ -281,7 +299,7 @@ module.exports = {
         .setName('start')
         .setDescription('Start crafting an item.'))
       .addSubcommand(subcommand => subcommand
-        .setName('test')
+        .setName('setup')
         .setDescription('Create test items.'))
       .addSubcommand(subcommand => subcommand
         .setName('reset')
@@ -303,9 +321,9 @@ module.exports = {
         // Respond.
         respond(interaction);
       },
-      test: async () => {
+      setup: async () => {
         await interaction.deferReply({ ephemeral: true });
-        await TEMP_createParts(interaction);
+        await createParts(interaction);
       },
       reset: async () => {
         await interaction.deferReply({ ephemeral: true });

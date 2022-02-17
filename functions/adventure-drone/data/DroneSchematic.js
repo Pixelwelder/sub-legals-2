@@ -1,4 +1,5 @@
 const Schematic = require('./Schematic');
+const ItemTypes = require('./ItemTypes');
 
 function DroneSchematic(overrides) {
   return new Schematic({

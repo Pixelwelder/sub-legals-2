@@ -4,17 +4,22 @@ const Thread = require('../data/Thread');
 const ConstructionProject = require('../data/ConstructionProject');
 
 const initialState = {
-  // [userId]: {
-  //    player,
-  //    inventory,
-  //    thread: {
-  //      data: {
-  //        itemId - the selected item (schematic)
-  //        type - the type of item (for a list)
-  //        constructionProject - the item that is currently being built - based on schematic
-  //      }
-  //    }
-  // }
+  /*
+   [userId]: {
+      player,
+      inventory,
+      thread: {
+        data: {
+          itemUid - the selected item (schematic)
+          type - the type of item (for a list)
+          constructionProject: {
+            schematicUid: '',
+            partUids: []
+          }
+        }
+      }
+    }
+  */
 };
 const name = 'craft';
 
@@ -41,7 +46,6 @@ const loadData = createAsyncThunk(`${name}/loadData`, async ({ userId }, { dispa
     }
 
     console.log('--- data loaded ---');
-    console.log(generatedActions);
     // dispatch(generatedActions.setData({ userId, data }));
     dispatch(generatedActions.setData({ userId, data }));
     // return { userId, data: data }
@@ -85,18 +89,6 @@ const resetUser = createAsyncThunk(`${name}/resetUser`, async ({ userId }, { dis
   } catch (error) {
     console.error('ERROR', error);
   }
-});
-
-const setConstructionProject = createAsyncThunk(`${name}/setConstructionProject`, async ({ userId, constructionProject }, { dispatch }) => {
-  console.log('--- setting construction project ---');
-  // We add it to the thread currently underway.
-  // try {
-  //   await getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(userId).set({
-      
-  //   });
-  // } catch (error) {
-  //   console.error('ERROR', error);
-  // }
 });
 
 const { reducer, actions: generatedActions } = createSlice({
