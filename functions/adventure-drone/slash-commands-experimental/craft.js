@@ -100,7 +100,8 @@ const getImage = ({ dialogId = 0 } = {}) => {
   return `${imageRoot}/nanoforge.jpg`;
 };
 
-const getMainMenuEmbed = ({ thread, inventory }) => {
+const getMainMenuEmbed = (userId) => {
+  const { thread, inventory } = craftSelectors.select(store.getState())[userId];
   const embed = new MessageEmbed()
     .setColor('0x000000')
     .setTitle('NANOFORGE | ONLINE')
@@ -126,8 +127,8 @@ const getMainMenuEmbed = ({ thread, inventory }) => {
   return { embeds: [embed], components };
 };
 
-const getMinionEmbed = (state) => {
-  const { thread, inventory, id } = state;
+const getMinionEmbed = (userId) => {
+  const { thread, inventory } = craftSelectors.select(store.getState())[userId];
   const { data } = thread;
 
   // Grab the schematic.
@@ -135,7 +136,7 @@ const getMinionEmbed = (state) => {
   if (!schematic) {
     // ABORT.
     console.log('ABORT', thread);
-    getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(id).delete();
+    getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(userId).delete();
     return { embeds: [], components: [], content: 'The Nanoforge has encountered a catastrophic error. Please try again.' };
   }
 
@@ -185,49 +186,52 @@ const getMinionEmbed = (state) => {
     return { embeds: [embed], components: [utilityRow, partsRow] };
 };
 
-const getResponse = (state) => {
+const getResponse = (userId) => {
+  const { thread } = craftSelectors.select(store.getState())[userId];
+
   const embedFactory = {
     [Progress.MAIN_MENU]: getMainMenuEmbed,
     [Progress.MINION]: getMinionEmbed
-  }[state.thread.dialogId];
+  }[thread.dialogId];
 
-  if (embedFactory) return embedFactory(state);
+  if (embedFactory) return embedFactory(userId);
 };
 
-const getThread = async (id) => {
-  // Do we have an in-flight UI thread?
-  let threadRef = getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(id);
-  const threadDoc = await threadRef.get();
-  return threadDoc.exists ? threadDoc.data() : new Thread();
-};
+// const getThread = async (id) => {
+//   // Do we have an in-flight UI thread?
+//   let threadRef = getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(id);
+//   const threadDoc = await threadRef.get();
+//   return threadDoc.exists ? threadDoc.data() : new Thread();
+// };
 
-const getInventory = async (id) => {
-  const inventoryDocs = await getFirestore().collection('discord_inventory').where('player', '==', id).get();
-  return inventoryDocs.size > 0 ? inventoryDocs.docs.map(doc => doc.data()) : [];
-};
+// const getInventory = async (id) => {
+//   const inventoryDocs = await getFirestore().collection('discord_inventory').where('player', '==', id).get();
+//   return inventoryDocs.size > 0 ? inventoryDocs.docs.map(doc => doc.data()) : [];
+// };
 
-const respond = async (interaction, state = {}) => {
-  const {
-    thread: _thread,
-    inventory: _inventory,
-    id: _id
-  } = state;
+const respond = async (interaction) => {
+  const userId = interaction.member.id;
+  // const {
+  //   thread: _thread,
+  //   inventory: _inventory,
+  //   id: _id
+  // } = state;
 
-  const id = _id || interaction.member.id;
-  const thread = _thread || await getThread(id);
-  const inventory = _inventory || await getInventory(id);
-  const response = getResponse({ ...state, thread, inventory, id });
+  // const id = _id || interaction.member.id;
+  // const thread = _thread || await getThread(id);
+  // const inventory = _inventory || await getInventory(id);
+  const response = getResponse(userId);
   interaction.editReply(response);
 
   // ------------------------------- HANDLERS ------------------------------------
-  const filterButtons = i => i.user.id === interaction.member.id;
+  const filterButtons = i => i.user.id === userId;
   const collector = interaction.channel.createMessageComponentCollector({ filter: filterButtons, time });
   collector.on('collect', async i => {
     // Stop collecting.
     collector.stop('manual');
 
     // Create new state.
-    const newState = { ...state, data: { ...state.data } };
+    const { thread } = craftSelectors.select(store.getState())[userId];
 
     // Grab ID, then blank buttons to avoid bug.
     const { customId } = i.component;
@@ -240,8 +244,9 @@ const respond = async (interaction, state = {}) => {
 
       case 'back-to-main-menu': {
         const newThread = { ...thread, dialogId: Progress.MAIN_MENU, updated: new Date().getTime() };
-        await getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(interaction.member.id).set(newThread);
-        respond(interaction, { ...newState, thread: newThread });
+        await store.dispatch(craftActions.saveData({ userId, data: { thread: newThread } }));
+        // await getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(interaction.member.id).set(newThread);
+        respond(interaction);
         break;
       }
 
@@ -250,8 +255,9 @@ const respond = async (interaction, state = {}) => {
           const [, schematicId] = customId.split('-');
           // TODO Gotta test this.
           const newThread = { ...thread, dialogId: Progress.MINION, data: { id: schematicId }, updated: new Date().getTime() };
-          await getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(interaction.member.id).set(newThread);
-          respond(interaction, { ...newState, thread: newThread });
+          await store.dispatch(craftActions.saveData({ userId, data: { thread: newThread } }));
+          // await getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(interaction.member.id).set(newThread);
+          respond(interaction);
           break;
         }
         // Save thread progress.

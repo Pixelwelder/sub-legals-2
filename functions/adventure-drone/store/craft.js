@@ -2,7 +2,13 @@ const { createSlice, createAsyncThunk } = require('@reduxjs/toolkit');
 const { getFirestore } = require('firebase-admin/firestore');
 
 const initialState = {
-  // [userId]: { player, inventory, thread }
+  // [userId]: {
+  //    player,
+  //    inventory,
+  //    thread: {
+  //      data: { id }
+  //    }
+  // }
 };
 const name = 'craft';
 
@@ -23,7 +29,30 @@ const loadData = createAsyncThunk(`${name}/loadData`, async ({ userId }, { dispa
     console.log('--- data loaded ---');
     console.log(generatedActions);
     // dispatch(generatedActions.setData({ userId, data }));
-    return { userId, data: data }
+    dispatch(generatedActions.setData({ userId, data }));
+    // return { userId, data: data }
+  } catch (error) {
+    console.error('ERROR', error);
+  }
+});
+
+const saveData = createAsyncThunk(`${name}/saveData`, async ({ userId, data }, { dispatch }) => {
+  console.log('--- saving data ---');
+  try {
+    // if (data.player) {
+    //   await getFirestore().collection('discord_characters').doc(data.player.id).set(data.player);
+    // }
+    // if (data.inventory) {
+    //   for (const inventoryItem of data.inventory) {
+    //     await getFirestore().collection('discord_inventory').doc(inventoryItem.id).set(inventoryItem);
+    //   }
+    // }
+    if (data.thread) {
+      await getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(userId).set(data.thread);
+    }
+    console.log('--- data saved ---');
+    dispatch(generatedActions.setData({ userId, data }))
+    // return { userId, data: data }
   } catch (error) {
     console.error('ERROR', error);
   }
@@ -32,17 +61,29 @@ const loadData = createAsyncThunk(`${name}/loadData`, async ({ userId }, { dispa
 const { reducer, actions: generatedActions } = createSlice({
   name,
   initialState,
-  extraReducers: {
-    [loadData.fulfilled]: (state, action) => {
-      const { payload } = action;
-      console.log('setData payload', payload);
-      state[payload.userId] = payload.data;
+  reducers: {
+    setData: (state, action) => {
+      console.log('--- setData ---', action.payload);
+      const { userId, data } = action.payload;
+      state[userId] = state[userId] || {};
+      Object.keys(data).forEach(key => {
+        state[userId][key] = data[key];
+      });
     }
-  }
+  },
+  // extraReducers: {
+  //   [loadData.fulfilled]: (state, action) => {
+  //     const { payload } = action;
+  //     console.log('setData payload', payload);
+  //     state[payload.userId] = payload.data;
+  //   }
+  // }
 });
 
-const actions = { ...generatedActions, loadData };
-const selectors = { select: state => state[name] };
+const actions = { ...generatedActions, loadData, saveData };
+const selectors = {
+  select: state => state[name]
+};
 
 module.exports = {
   actions,
