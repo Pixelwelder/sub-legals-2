@@ -1,6 +1,7 @@
 const DialogIds = {
   MAIN_MENU: 0,
-  MINION: 1
+  SCHEMATIC: 1,
+  LIST: 2
 };
 
 module.exports = DialogIds;

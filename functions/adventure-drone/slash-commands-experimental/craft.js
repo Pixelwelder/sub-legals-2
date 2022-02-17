@@ -8,80 +8,20 @@ const { PersonalInventoryItem } = require('@pixelwelders/tlh-universe-data');
 const store = require('../store');
 const { selectors: craftSelectors, actions: craftActions } = require('../store/craft');
 const DialogIds = require('../data/DialogIds');
+const ItemTypes = require('../data/ItemTypes');
+const DroneSchematic = require('../data/DroneSchematic');
+const ConstructionProject = require('../data/ConstructionProject');
+const capitalize = require('../../utils/capitalize');
+const pluralize = require('../../utils/pluralize');
+const createParts = require('./craft/createParts');
+const sortByType = require('../../utils/sortByType');
+const { dispatch } = require('../store');
 // -----------------------------------------------------------------------------
 
 
 
 
 // -----------------------------------------------------------------------------
-const time = 30 * 1000;
-
-// Used to craft an item.
-function Schematic(overrides) {
-  return new PersonalInventoryItem({
-    type: ItemTypes.SCHEMATIC,
-    displayName: 'Schematic',
-    ...overrides
-  });
-}
-
-const ItemTypes = {
-  SCHEMATIC: 'schematic',
-  CHASSIS: 'chassis',
-  CORE: 'core',
-  SENSOR: 'sensor',
-  DRIVETRAIN: 'drivetrain',
-  TOOL: 'tool'
-};
-
-function DroneSchematic(overrides) {
-  return new Schematic({
-    displayName: 'Generic Drone',
-    data: {
-      parts: [
-        { type: 'type', requires: [ItemTypes.CHASSIS], displayName: 'Chassis' },
-        { type: 'type', requires: [ItemTypes.CORE], displayName: 'Core' },
-        { type: 'type', requires: [ItemTypes.SENSOR], displayName: 'Sensor' },
-        { type: 'type', requires: [ItemTypes.DRIVETRAIN], displayName: 'Drivetrain' },
-        { type: 'type', requires: [ItemTypes.TOOL], displayName: 'Tool' }
-      ]
-    },
-    ...overrides
-  });
-}
-
-const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
-const pluralize = (word) => word.endsWith('s') ? `${word}es` : `${word}s`;
-
-const adminId = '685513488411525164';
-const TEMP_createParts = async (interaction) => {
-  // Create a bunch of parts in firestore and give them all to USKillbotics (685513488411525164).
-  const firestore = getFirestore();
-  [ItemTypes.CHASSIS, ItemTypes.CORE, ItemTypes.SENSOR, ItemTypes.DRIVETRAIN, ItemTypes.TOOL]
-    .forEach(async type => {
-      const doc = getFirestore().collection('discord_inventory').doc();
-      const item = new PersonalInventoryItem({
-        uid: doc.id,
-        player: adminId,
-        type,
-        displayName: `${capitalize(type)} ${Math.floor(Math.random() * 100)}`,
-        description: 'Looks pretty beat up.',
-        image: 'parts_13.png'
-      });
-      await doc.set(item);
-    });
-
-  // Create schematic.
-  const doc = getFirestore().collection('discord_inventory').doc();
-  const item = new DroneSchematic({
-    displayName: 'Random Drone',
-    uid: doc.id,
-    player: adminId,
-    image: `parts_${Math.floor(Math.random() * 45)}.png`
-  });
-  await doc.set(item);
-  interaction.editReply('Test items created.');
-};
 
 const imageRoot = 'http://storage.googleapis.com/species-registry.appspot.com/images/discord/ui';
 const getImage = ({ dialogId = 0 } = {}) => {
@@ -124,7 +64,7 @@ const getMainMenuEmbed = (userId) => {
   return { embeds: [embed], components };
 };
 
-const getMinionEmbed = (userId) => {
+const getSchematicEmbed = (userId) => {
   const { thread, inventory } = craftSelectors.select(store.getState())[userId];
   const { data } = thread;
 
@@ -141,23 +81,43 @@ const getMinionEmbed = (userId) => {
 
   const embed = new MessageEmbed()
     .setColor('0x000000')
-    .setTitle('NANOFORGE | CREATE MINION')
+    .setTitle(`SCHEMATIC | ${schematic.displayName.toUpperCase()}`)
     .setImage(getImage(thread));
 
     // Now we go through the required items.
+    // First sort items into a map of arrays by type.
+    const itemsByType = sortByType(inventory);
+
     let enabled = true;
     const partsRow = new MessageActionRow()
       .addComponents(
         schematic.data.parts.map(part => {
-          console.log('=', part);
-          const item = inventory.find(item => part.requires.includes(item.type));
-          console.log('+', item?.displayName, item?.type);
+          const { displayName, requires, options } = part;
+
+          // Do we have any of the options?
+          const availableItems = options.reduce((acc, option) => {
+            const items = itemsByType[option];
+            if (items) return [...acc, ...items];
+          }, []);
+
+          // What is currently selected?
+
+          // If no item is selected, the button shows the displayName of the part specification.
+          // If an item is selected, the button shows the displayName of the item.
+          
+
+          // const enabled = part.requires.reduce((isEnabled, searchType) => (isEnabled && !!itemsByType[searchType]), true);
+          // const enabled = part.requires.find(searchType => !!(itemsByType[searchType] && itemsByType[searchType].length));
+          
+          
+
+          const item = inventory.find(item => part.requires.includes(item.type)); 
           if (!item) enabled = false;
           return new MessageButton()
             .setCustomId(`craft-${item?.type}`)
             .setLabel(part.displayName)
             .setStyle('SECONDARY')
-            .setDisabled(!item)
+            .setDisabled(!enabled)
         })
       );
 
@@ -187,21 +147,24 @@ const getListEmbed = (userId) => {
   
   const embed = new MessageEmbed()
     .setColor('0x000000')
-    .setTitle(`NANOFORGE | ${capitalize(pluralize(type))}`);
+    .setTitle(`NANOFORGE | CHOOSE ${type.toUpperCase()}`)
+    .setImage(getImage(thread));
 
   // Grab the items in this category. Each one gets a button.
-  // const parts = inventory.filter(item => item.type === type);
-  // if (parts.length) {
-  //   const actionRow = new MessageActionRow();
-  //   const buttons = parts.map(part => {
-  //     return new MessageButton()
-  //       .setCustomId(`craft-${part.uid}`)
-  //       .setLabel(part.displayName)
-  //       .setStyle('SECONDARY');
-  //   });
-  //   actionRow.addComponents(buttons);
-  //   return { embeds: [embed], components: [actionRow] };
-  // }
+  const items = inventory.filter(item => item.type === type);
+  if (items.length) {
+    const actionRow = new MessageActionRow();
+    const buttons = items.map(part => {
+      return new MessageButton()
+        .setCustomId(`craft-${part.uid}`)
+        .setLabel(part.displayName)
+        .setStyle('SECONDARY');
+    });
+    actionRow.addComponents(buttons);
+    return { embeds: [embed], components: [actionRow] };
+  }
+
+  embed.setDescription(`You have ${items.length} ${items.length === 1 ? type : pluralize(type)}.`);
   // const partsRow = new MessageActionRow()
   //   .addComponents(
 
@@ -220,18 +183,12 @@ const getListEmbed = (userId) => {
   const utilityRow = new MessageActionRow()
     .addComponents([
       new MessageButton()
-        .setCustomId(`goto-${DialogIds.MAIN_MENU}`)
+        .setCustomId(`goto-${DialogIds.SCHEMATIC}`)
         .setLabel('< Back')
-        .setStyle('SECONDARY'),
-
-        new MessageButton()
-        .setCustomId('forge')
-        .setLabel('Forge')
-        .setStyle('PRIMARY')
-        .setDisabled(true)
+        .setStyle('SECONDARY')
     ]);
   
-  return { embeds: [embed], components: [utilityRow, partsRow] };
+  return { embeds: [embed], components: [utilityRow] };
 };
 
 const getResponse = (userId) => {
@@ -239,7 +196,8 @@ const getResponse = (userId) => {
 
   const embedFactory = {
     [DialogIds.MAIN_MENU]: getMainMenuEmbed,
-    [DialogIds.MINION]: getMinionEmbed
+    [DialogIds.SCHEMATIC]: getSchematicEmbed,
+    [DialogIds.LIST]: getListEmbed
   }[thread.dialogId];
 
   if (embedFactory) return embedFactory(userId);
@@ -273,7 +231,7 @@ const respond = async (interaction) => {
 
   // ------------------------------- HANDLERS ------------------------------------
   const filterButtons = i => i.user.id === userId;
-  const collector = interaction.channel.createMessageComponentCollector({ filter: filterButtons, time });
+  const collector = interaction.channel.createMessageComponentCollector({ filter: filterButtons, time: 30 * 1000 });
   collector.on('collect', async i => {
     // Stop collecting.
     collector.stop('manual');
@@ -287,14 +245,20 @@ const respond = async (interaction) => {
     
     if (customId.startsWith('goto-')) {
       const [, dialogId] = customId.split('-');
-      const newThread = { ...thread, dialogId, updated: new Date().getTime() };
+      const newThread = { ...thread, dialogId };
+      await store.dispatch(craftActions.saveData({ userId, data: { thread: newThread } }));
+      respond(interaction);
+
+    } else if (customId.startsWith('craft-')) {
+      const [, itemType] = customId.split('-');
+      const newThread = { ...thread, dialogId: DialogIds.LIST, data: { ...thread.data, type: itemType } };
       await store.dispatch(craftActions.saveData({ userId, data: { thread: newThread } }));
       respond(interaction);
 
     } else if (customId.startsWith('schematic-')) {
       const [, schematicId] = customId.split('-');
       // TODO Gotta test this.
-      const newThread = { ...thread, dialogId: DialogIds.MINION, data: { itemUid: schematicId }, updated: new Date().getTime() };
+      const newThread = { ...thread, dialogId: DialogIds.SCHEMATIC, data: { ...thread.data, itemUid: schematicId } };
       await store.dispatch(craftActions.saveData({ userId, data: { thread: newThread } }));
       respond(interaction);
     }
@@ -317,7 +281,15 @@ module.exports = {
         .setDescription('Start crafting an item.'))
       .addSubcommand(subcommand => subcommand
         .setName('test')
-        .setDescription('Create test items.')),
+        .setDescription('Create test items.'))
+      .addSubcommand(subcommand => subcommand
+        .setName('reset')
+        .setDescription('Reset a user\'s crafting state.')
+        .addUserOption(option => option
+          .setName('resident')
+          .setDescription('The station resident to to reset.')
+          .setRequired(true)
+        )),
 
   async execute(interaction, character) {
     const command = {
@@ -333,6 +305,13 @@ module.exports = {
       test: async () => {
         await interaction.deferReply({ ephemeral: true });
         await TEMP_createParts(interaction);
+      },
+      reset: async () => {
+        await interaction.deferReply({ ephemeral: true });
+        const { id } = interaction.options.getUser('resident');
+        console.log('+++', Object.keys(craftActions));
+        await store.dispatch(craftActions.resetUser({ userId: id }));
+        await interaction.editReply({ content: `Reset <@${id}>'s crafting state.` });
       }
     }[interaction.options.getSubcommand()];
 

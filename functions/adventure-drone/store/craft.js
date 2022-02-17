@@ -1,13 +1,18 @@
 const { createSlice, createAsyncThunk } = require('@reduxjs/toolkit');
 const { getFirestore } = require('firebase-admin/firestore');
 const Thread = require('../data/Thread');
+const ConstructionProject = require('../data/ConstructionProject');
 
 const initialState = {
   // [userId]: {
   //    player,
   //    inventory,
   //    thread: {
-  //      data: { id }
+  //      data: {
+  //        itemId - the selected item (schematic)
+  //        type - the type of item (for a list)
+  //        underConstruction - the item that is currently being built - based on schematic
+  //      }
   //    }
   // }
 };
@@ -50,11 +55,26 @@ const saveData = createAsyncThunk(`${name}/saveData`, async ({ userId, data }, {
     //   }
     // }
     if (data.thread) {
-      await getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(userId).set(data.thread);
+      await getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(userId).set({
+        ...data.thread,
+        updated: new Date().getTime()
+      });
     }
     console.log('--- data saved ---');
     dispatch(generatedActions.setData({ userId, data }))
     // return { userId, data: data }
+  } catch (error) {
+    console.error('ERROR', error);
+  }
+});
+
+// Reset's a user's state.
+const resetUser = createAsyncThunk(`${name}/resetUser`, async ({ userId }, { dispatch }) => {
+  console.log('--- resetting ---');
+  try {
+    await getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(userId).delete();
+    dispatch(generatedActions.resetUser({ userId }));
+    // return { userId }
   } catch (error) {
     console.error('ERROR', error);
   }
@@ -65,12 +85,15 @@ const { reducer, actions: generatedActions } = createSlice({
   initialState,
   reducers: {
     setData: (state, action) => {
-      console.log('--- setData ---', action.payload);
       const { userId, data } = action.payload;
       state[userId] = state[userId] || {};
       Object.keys(data).forEach(key => {
         state[userId][key] = data[key];
       });
+    },
+    resetUser: (state, action) => {
+      const { userId } = action.payload;
+      delete state[userId];
     }
   },
   // extraReducers: {
@@ -82,7 +105,7 @@ const { reducer, actions: generatedActions } = createSlice({
   // }
 });
 
-const actions = { ...generatedActions, loadData, saveData };
+const actions = { loadData, resetUser, saveData };
 const selectors = {
   select: state => state[name]
 };
