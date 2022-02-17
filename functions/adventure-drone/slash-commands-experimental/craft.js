@@ -67,6 +67,7 @@ const getMainMenuEmbed = (userId) => {
 const getSchematicEmbed = (userId) => {
   const { thread, inventory } = craftSelectors.select(store.getState())[userId];
   const { data } = thread;
+  const { constructionProject } = data;
 
   // Grab the schematic.
   const schematic = inventory.find(item => item.uid === data.itemUid);
