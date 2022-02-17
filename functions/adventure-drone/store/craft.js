@@ -10,8 +10,9 @@ const initialState = {
       inventory,
       thread: {
         data: {
-          itemUid - the selected item (schematic)
-          type - the type of item (for a list)
+          schemmaticUid - the selected item (schematic)
+          itemTypes - the types of items to show (for a list)
+          itemIndex - the index of the item being selected
           constructionProject: {
             schematicUid: '',
             partUids: []
@@ -66,6 +67,7 @@ const saveData = createAsyncThunk(`${name}/saveData`, async ({ userId, data }, {
     //   }
     // }
     if (data.thread) {
+      console.log(data.thread.data.constructionProject);
       await getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(userId).set({
         ...data.thread,
         updated: new Date().getTime()

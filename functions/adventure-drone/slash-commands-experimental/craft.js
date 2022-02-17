@@ -22,14 +22,13 @@ const { dispatch } = require('../store');
 
 
 // -----------------------------------------------------------------------------
-
 const imageRoot = 'http://storage.googleapis.com/species-registry.appspot.com/images/discord/ui';
 const getImage = ({ dialogId = 0 } = {}) => {
   return `${imageRoot}/nanoforge.jpg`;
 };
 
 const getAbort = (userId, response = {}) => {
-  getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(userId).delete();
+  // getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(userId).delete();
   return { embeds: [], components: [], content: 'The Nanoforge has encountered a catastrophic error. Please try again.', ...response };
 };
 
@@ -70,7 +69,7 @@ const getSchematicEmbed = async (userId) => {
   const { constructionProject } = data;
 
   // Grab the schematic.
-  const schematic = inventory.find(item => item.uid === data.itemUid);
+  const schematic = inventory.find(item => item.uid === data.schematicUid);
   if (!schematic) return getAbort(userId, { content: 'The schematic has disappeared.' });
 
   // Do we have a construction project?
@@ -103,26 +102,20 @@ const getSchematicEmbed = async (userId) => {
         // Do we have any of the options?
         const availableItems = options.reduce((acc, option) => {
           const items = itemsByType[option];
-          if (items) return [...acc, ...items];
-          return acc;
+          return items ? [...acc, ...items] : acc;
         }, []);
 
         // If no item is selected, the button shows the displayName of the part specification.
         // If an item is selected, the button shows the displayName of the item.
         let label = `${part.displayName} (${availableItems.length})`;
-        const selectedItem = constructionProject.partUids[index];
-        if (selectedItem) {
+        const selectedItemId = constructionProject.partUids[index];
+        if (selectedItemId) {
+          const selectedItem = inventory.find(item => item.uid === selectedItemId);
           label = selectedItem.displayName;
         }
 
-        
-        
-
-        // const enabled = part.requires.reduce((isEnabled, searchType) => (isEnabled && !!itemsByType[searchType]), true);
-        // const enabled = part.requires.find(searchType => !!(itemsByType[searchType] && itemsByType[searchType].length));
-        
         return new MessageButton()
-          .setCustomId(`craft-${index}`)
+          .setCustomId(`craft-${index}-${options.reduce((acc, option, index) => `${acc}${acc ? ',' : ''}${option}`, '')}`)
           .setLabel(label)
           .setStyle('SECONDARY')
           .setDisabled(!availableItems.length);
@@ -130,17 +123,17 @@ const getSchematicEmbed = async (userId) => {
     );
 
     const utilityRow = new MessageActionRow()
-    .addComponents([
-      new MessageButton()
-        .setCustomId(`goto-${DialogIds.MAIN_MENU}`)
-        .setLabel('< Back')
-        .setStyle('SECONDARY'),
+      .addComponents([
+        new MessageButton()
+          .setCustomId(`goto-${DialogIds.MAIN_MENU}`)
+          .setLabel('< Back')
+          .setStyle('SECONDARY'),
 
         new MessageButton()
-        .setCustomId('forge')
-        .setLabel('Forge')
-        .setStyle('PRIMARY')
-        .setDisabled(!enabled)
+          .setCustomId('forge')
+          .setLabel('Forge')
+          .setStyle('PRIMARY')
+          .setDisabled(!enabled)
     ]);
   
     return { embeds: [embed], components: [utilityRow, partsRow] };
@@ -149,27 +142,44 @@ const getSchematicEmbed = async (userId) => {
 const getListEmbed = (userId) => {
   const { thread, inventory } = craftSelectors.select(store.getState())[userId];
   const { data } = thread;
-  const { type } = data;
+  const { itemTypes, itemIndex } = data;
 
-  if (!type) return getAbort(userId);
+  if (!itemTypes) return getAbort(userId, { content: 'No itemTypes.' });
+  if (!itemIndex) return getAbort(userId, { content: 'No itemIndex.' });
+
+  const itemsByType = sortByType(inventory);
+  const availableItems = itemTypes.reduce((acc, option) => {
+    const items = itemsByType[option];
+    return items ? [...acc, ...items] : acc;
+  }, []);
   
   const embed = new MessageEmbed()
     .setColor('0x000000')
-    .setTitle(`NANOFORGE | CHOOSE ${type.toUpperCase()}`)
+    .setTitle(`NANOFORGE | CHOOSE ITEM`)
     .setImage(getImage(thread));
 
   // Grab the items in this category. Each one gets a button.
-  const items = inventory.filter(item => item.type === type);
-  if (items.length) {
-    const actionRow = new MessageActionRow();
-    const buttons = items.map(part => {
+  // const items = inventory.filter(item => item.type === type);
+  console.log(inventory.length, availableItems.length);
+  if (availableItems.length) {
+    const partsRow = new MessageActionRow();
+    const buttons = availableItems.map(part => {
       return new MessageButton()
-        .setCustomId(`craft-${part.uid}`)
+        .setCustomId(`install-${part.uid}`)
         .setLabel(part.displayName)
         .setStyle('SECONDARY');
     });
-    actionRow.addComponents(buttons);
-    return { embeds: [embed], components: [actionRow] };
+
+    const utilityRow = new MessageActionRow()
+      .addComponents([
+        new MessageButton()
+          .setCustomId(`goto-${DialogIds.SCHEMATIC}`)
+          .setLabel('< Back')
+          .setStyle('SECONDARY')
+    ]);
+
+    partsRow.addComponents(buttons);
+    return { embeds: [embed], components: [utilityRow, partsRow] };
   }
 
   embed.setDescription(`You have ${items.length} ${items.length === 1 ? type : pluralize(type)}.`);
@@ -194,7 +204,7 @@ const getResponse = (userId) => {
   }[thread.dialogId];
 
   if (embedFactory) return embedFactory(userId);
-  return getAbort(userId);
+  return getAbort(userId, { content: `No embed factory for ${thread.dialogId}.` });
 };
 
 // const getThread = async (id) => {
@@ -238,6 +248,7 @@ const respond = async (interaction) => {
     const { customId } = i.component;
     await i.update({ components: [] });
     
+    console.log('button', customId);
     if (customId.startsWith('goto-')) {
       const [, dialogId] = customId.split('-');
       const newThread = { ...thread, dialogId };
@@ -245,17 +256,46 @@ const respond = async (interaction) => {
       respond(interaction);
 
     } else if (customId.startsWith('craft-')) {
-      const [, itemType] = customId.split('-');
-      const newThread = { ...thread, dialogId: DialogIds.LIST, data: { ...thread.data, type: itemType } };
+      const [, itemIndex, itemTypesString] = customId.split('-');
+      const itemTypes = itemTypesString.split(',');
+      const newThread = { ...thread, dialogId: DialogIds.LIST, data: { ...thread.data, itemIndex: Number(itemIndex), itemTypes } };
       await store.dispatch(craftActions.saveData({ userId, data: { thread: newThread } }));
+      const { thread: thread2 } = craftSelectors.select(store.getState())[userId];
+      console.log('new thread', thread2);
+      
       respond(interaction);
 
     } else if (customId.startsWith('schematic-')) {
-      const [, schematicId] = customId.split('-');
+      const [, schematicUid] = customId.split('-');
       // TODO Gotta test this.
-      const newThread = { ...thread, dialogId: DialogIds.SCHEMATIC, data: { ...thread.data, itemUid: schematicId } };
+      const newThread = { ...thread, dialogId: DialogIds.SCHEMATIC, data: { ...thread.data, schematicUid } };
       await store.dispatch(craftActions.saveData({ userId, data: { thread: newThread } }));
       respond(interaction);
+    
+    } else if (customId.startsWith('install-')) {
+      const [, itemUid] = customId.split('-');
+      const { itemIndex } = thread.data;
+
+      console.log('installing', itemUid, itemIndex);
+      // Install the item in the construction project.
+      const newConstructionProject = { ...thread.data.constructionProject, partUids: [...thread.data.constructionProject.partUids] };
+      newConstructionProject.partUids[itemIndex] = itemUid;
+      await store.dispatch(craftActions.saveData({
+        userId,
+        data: {
+          thread: {
+            ...thread, 
+            test: itemUid,
+            data: {
+              ...thread.data,
+              constructionProject: newConstructionProject
+            },
+            dialogId: DialogIds.SCHEMATIC
+          }
+        }
+      }))
+      respond(interaction);
+
     }
   });
 
