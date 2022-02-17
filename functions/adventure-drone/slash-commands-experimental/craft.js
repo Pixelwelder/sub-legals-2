@@ -65,7 +65,6 @@ const getMainMenuEmbed = (userId) => {
 };
 
 const getSchematicEmbed = async (userId) => {
-  console.log('getSchematicEmbed');
   const { thread, inventory } = craftSelectors.select(store.getState())[userId];
   const { data } = thread;
   const { constructionProject } = data;
@@ -86,15 +85,6 @@ const getSchematicEmbed = async (userId) => {
     return getSchematicEmbed(userId);
   }
 
-  console.log('constructionProject', constructionProject);
-
-  // console.log('-------------------');
-  // console.log(thread);
-  // console.log(inventory.length);
-  // console.log(data);
-  // console.log('schematic', !!schematic);
-  // console.log('-------------------');
-
   const embed = new MessageEmbed()
     .setColor('0x000000')
     .setTitle(`SCHEMATIC | ${schematic.displayName.toUpperCase()}`)
@@ -103,7 +93,6 @@ const getSchematicEmbed = async (userId) => {
   // Now we go through the required items.
   // First sort items into a map of arrays by type.
   const itemsByType = sortByType(inventory);
-  console.log('itemsByType', itemsByType);
 
   let enabled = true;
   const partsRow = new MessageActionRow()
@@ -158,7 +147,6 @@ const getSchematicEmbed = async (userId) => {
 };
 
 const getListEmbed = (userId) => {
-  console.log('getListEmbed');
   const { thread, inventory } = craftSelectors.select(store.getState())[userId];
   const { data } = thread;
   const { type } = data;
@@ -185,21 +173,6 @@ const getListEmbed = (userId) => {
   }
 
   embed.setDescription(`You have ${items.length} ${items.length === 1 ? type : pluralize(type)}.`);
-  // const partsRow = new MessageActionRow()
-  //   .addComponents(
-
-  //     schematic.data.parts.map(part => {
-  //       console.log('=', part);
-  //       const item = inventory.find(item => part.requires.includes(item.type));
-  //       console.log('+', item?.displayName, item?.type);
-  //       return new MessageButton()
-  //         .setCustomId(`craft-${item?.type}`)
-  //         .setLabel(part.displayName)
-  //         .setStyle('SECONDARY')
-  //         .setDisabled(!item)
-  //     })
-  //   );
-
   const utilityRow = new MessageActionRow()
     .addComponents([
       new MessageButton()
@@ -331,7 +304,6 @@ module.exports = {
       reset: async () => {
         await interaction.deferReply({ ephemeral: true });
         const { id } = interaction.options.getUser('resident');
-        console.log('+++', Object.keys(craftActions));
         await store.dispatch(craftActions.resetUser({ userId: id }));
         await interaction.editReply({ content: `Reset <@${id}>'s crafting state.` });
       }
