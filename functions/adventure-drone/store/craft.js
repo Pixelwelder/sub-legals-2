@@ -1,5 +1,6 @@
 const { createSlice, createAsyncThunk } = require('@reduxjs/toolkit');
 const { getFirestore } = require('firebase-admin/firestore');
+const Thread = require('../data/Thread');
 
 const initialState = {
   // [userId]: {
@@ -15,16 +16,17 @@ const name = 'craft';
 const loadData = createAsyncThunk(`${name}/loadData`, async ({ userId }, { dispatch }) => {
   console.log('--- loading data ---');
   const data = {};
-  // TODO This needs to load from something on the user object.
   try {
+    // TODO This needs to load from something on the user object.
+    // TODO If we have no player, we have a big issue.
     const playerDocs = await getFirestore().collection('discord_characters').where('player', '==', userId).get();
     if (playerDocs.size) data.player = playerDocs.docs[0].data();
     
     const inventoryDocs = await getFirestore().collection('discord_inventory').where('player', '==', userId).get();
-    if (inventoryDocs.docs.length) data.inventory = inventoryDocs.docs.map(doc => doc.data());
+    data.inventory = inventoryDocs.docs.length ? inventoryDocs.docs.map(doc => doc.data()) : [];
 
     const threadDoc = await getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(userId).get();
-    if (threadDoc.exists) data.thread = threadDoc.data();
+    data.thread = threadDoc.exists ? threadDoc.data() : new Thread();
 
     console.log('--- data loaded ---');
     console.log(generatedActions);
@@ -37,7 +39,7 @@ const loadData = createAsyncThunk(`${name}/loadData`, async ({ userId }, { dispa
 });
 
 const saveData = createAsyncThunk(`${name}/saveData`, async ({ userId, data }, { dispatch }) => {
-  console.log('--- saving data ---');
+  console.log('--- saving data ---', Object.keys(data));
   try {
     // if (data.player) {
     //   await getFirestore().collection('discord_characters').doc(data.player.id).set(data.player);
