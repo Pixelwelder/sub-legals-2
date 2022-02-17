@@ -6,7 +6,7 @@ const sortByType = (items) => {
     itemsByType[item.type].push(item);
   });
 
-  return items;
+  return itemsByType;
 };
 
 module.exports = sortByType;;

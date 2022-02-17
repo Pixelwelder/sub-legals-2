@@ -13,7 +13,7 @@
 function ConstructionProject(schematic) {
   return {
     schematicUid: schematic.uid,
-    partIds: new Array(schematic.data.parts.length).fill('')
+    partUids: new Array(schematic.data.parts.length).fill('')
   };
 }
 

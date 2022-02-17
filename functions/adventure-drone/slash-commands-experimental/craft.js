@@ -100,42 +100,45 @@ const getSchematicEmbed = async (userId) => {
     .setTitle(`SCHEMATIC | ${schematic.displayName.toUpperCase()}`)
     .setImage(getImage(thread));
 
-    // Now we go through the required items.
-    // First sort items into a map of arrays by type.
-    const itemsByType = sortByType(inventory);
+  // Now we go through the required items.
+  // First sort items into a map of arrays by type.
+  const itemsByType = sortByType(inventory);
+  console.log('itemsByType', itemsByType);
 
-    let enabled = true;
-    const partsRow = new MessageActionRow()
-      .addComponents(
-        schematic.data.parts.map(part => {
-          const { displayName, requires, options } = part;
+  let enabled = true;
+  const partsRow = new MessageActionRow()
+    .addComponents(
+      schematic.data.parts.map((part, index) => {
+        const { displayName, requires, options } = part;
 
-          // Do we have any of the options?
-          const availableItems = options.reduce((acc, option) => {
-            const items = itemsByType[option];
-            if (items) return [...acc, ...items];
-          }, []);
+        // Do we have any of the options?
+        const availableItems = options.reduce((acc, option) => {
+          const items = itemsByType[option];
+          if (items) return [...acc, ...items];
+          return acc;
+        }, []);
 
-          // What is currently selected?
+        // If no item is selected, the button shows the displayName of the part specification.
+        // If an item is selected, the button shows the displayName of the item.
+        let label = `${part.displayName} (${availableItems.length})`;
+        const selectedItem = constructionProject.partUids[index];
+        if (selectedItem) {
+          label = selectedItem.displayName;
+        }
 
-          // If no item is selected, the button shows the displayName of the part specification.
-          // If an item is selected, the button shows the displayName of the item.
-          
+        
+        
 
-          // const enabled = part.requires.reduce((isEnabled, searchType) => (isEnabled && !!itemsByType[searchType]), true);
-          // const enabled = part.requires.find(searchType => !!(itemsByType[searchType] && itemsByType[searchType].length));
-          
-          
-
-          const item = inventory.find(item => part.requires.includes(item.type)); 
-          if (!item) enabled = false;
-          return new MessageButton()
-            .setCustomId(`craft-${item?.type}`)
-            .setLabel(part.displayName)
-            .setStyle('SECONDARY')
-            .setDisabled(!enabled)
-        })
-      );
+        // const enabled = part.requires.reduce((isEnabled, searchType) => (isEnabled && !!itemsByType[searchType]), true);
+        // const enabled = part.requires.find(searchType => !!(itemsByType[searchType] && itemsByType[searchType].length));
+        
+        return new MessageButton()
+          .setCustomId(`craft-${index}`)
+          .setLabel(label)
+          .setStyle('SECONDARY')
+          .setDisabled(!availableItems.length);
+      })
+    );
 
     const utilityRow = new MessageActionRow()
     .addComponents([
@@ -151,7 +154,7 @@ const getSchematicEmbed = async (userId) => {
         .setDisabled(!enabled)
     ]);
   
-    return { embeds: [embed], components: [utilityRow] };
+    return { embeds: [embed], components: [utilityRow, partsRow] };
 };
 
 const getListEmbed = (userId) => {
@@ -245,7 +248,7 @@ const respond = async (interaction) => {
   // const thread = _thread || await getThread(id);
   // const inventory = _inventory || await getInventory(id);
   const response = await getResponse(userId);
-  console.log('RESPONSE', response);
+  // console.log('RESPONSE', response);
   interaction.editReply(response);
 
   // ------------------------------- HANDLERS ------------------------------------
