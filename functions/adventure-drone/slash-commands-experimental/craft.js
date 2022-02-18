@@ -29,7 +29,7 @@ const getImage = ({ dialogId = 0 } = {}) => {
 };
 
 const getAbort = (userId, response = {}) => {
-  // getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(userId).delete();
+  getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(userId).delete();
   return { embeds: [], components: [], content: 'The Nanoforge has encountered a catastrophic error. Please try again.', ...response };
 };
 
@@ -44,17 +44,26 @@ const getMainMenuEmbed = (userId) => {
   // TODO IMPORTANT Wrap at 5.
   const components = [];
   const schematics = inventory.filter(item => item.type === ItemTypes.SCHEMATIC);
+  const actionRow = new MessageActionRow();
+  let buttons;
   if (schematics.length) {
-    const actionRow = new MessageActionRow();
-    const buttons = schematics.map(schematic => {
+    buttons = schematics.map(schematic => {
       return new MessageButton()
         .setCustomId(`schematic-${schematic.uid}`)
         .setLabel(schematic.displayName)
         .setStyle('SECONDARY');
     });
-    actionRow.addComponents(buttons);
-    components.push(actionRow);
+  } else {
+    buttons = [
+      new MessageButton()
+        .setCustomId('disabled')
+        .setLabel('No Schematics')
+        .setStyle('SECONDARY')
+        .setDisabled(true)
+    ];
   }
+  actionRow.addComponents(buttons);
+  components.push(actionRow);
 
   // Add description.
   embed.setDescription(`You have ${schematics.length} schematic${schematics.length === 1 ? '' : 's'}.`);
@@ -130,7 +139,8 @@ const getSchematicEmbed = async (userId) => {
         }
 
         return new MessageButton()
-          .setCustomId(`craft-${index}-${options.reduce((acc, option, index) => `${acc}${acc ? ',' : ''}${option}`, '')}`)
+          // listPage, itemIndex, itemTypesString
+          .setCustomId(`list-0-${index}-${options.reduce((acc, option, index) => `${acc}${acc ? ',' : ''}${option}`, '')}`)
           .setLabel(label)
           .setStyle(style)
           .setDisabled(!availableItems.length);
@@ -158,7 +168,7 @@ const getSchematicEmbed = async (userId) => {
 const getListEmbed = (userId) => {
   const { thread, inventory } = craftSelectors.select(store.getState())[userId];
   const { data } = thread;
-  const { itemTypes, itemIndex = -1, constructionProject } = data;
+  const { itemTypes, itemIndex = -1, constructionProject, listPage = 0 } = data;
 
   if (!itemTypes || !itemTypes.length) return getAbort(userId, { content: 'No itemTypes.' });
   if (itemIndex === -1) return getAbort(userId, { content: 'No itemIndex.' });
@@ -169,33 +179,64 @@ const getListEmbed = (userId) => {
     const items = itemsByType[option];
     return items ? [...acc, ...items] : acc;
   }, []);
-  
+
+  // We might have more items than we can show. Therefore we paginate.
+  // Since we can show 25 buttons, we will reserve one row of 5 for controls, leaving us 20.
+  const pageSize = 20;
+  const pageCount = Math.ceil(availableItems.length / pageSize);
+  const startIndex = listPage * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, availableItems.length);
+  const items = availableItems.slice(startIndex, endIndex);
+
+  console.log('page:', listPage, startIndex, endIndex, items.length, availableItems.length);
+
   const embed = new MessageEmbed()
     .setColor('0x000000')
     .setTitle(`NANOFORGE | CHOOSE ITEM`)
     .setImage(getImage(thread));
 
-  // Grab the items in this category. Each one gets a button.
-  // const items = inventory.filter(item => item.type === type);
-  if (availableItems.length) {
-    const partsRow = new MessageActionRow();
-    const buttons = availableItems.map(part => {
-      return new MessageButton()
-        .setCustomId(`install-${part.uid}`)
-        .setLabel(part.displayName)
-        .setStyle(part.uid === selectedUid ? 'SUCCESS' : 'SECONDARY');
+  if (items.length) {
+    // Now wrap the array.
+    const rows = wrapArray(items, 5);
+    // Create buttons.
+    const components = rows.map((row, index) => {
+      const actionRow = new MessageActionRow();
+      const buttons = row.map(item => {
+        return new MessageButton()
+          .setCustomId(`install-${item.uid}`)
+          .setLabel(item.displayName)
+          .setStyle(item.uid === selectedUid ? 'SUCCESS' : 'SECONDARY');
+      });
+      actionRow.addComponents(buttons);
+      return actionRow;
     });
 
-    const utilityRow = new MessageActionRow()
+    const actionRow = new MessageActionRow()
       .addComponents([
         new MessageButton()
           .setCustomId(`goto-${DialogIds.SCHEMATIC}`)
           .setLabel('< Back')
           .setStyle('SECONDARY')
-    ]);
+      ]);
 
-    partsRow.addComponents(buttons);
-    return { embeds: [embed], components: [utilityRow, partsRow] };
+    if (pageCount > 1) {
+      actionRow.addComponents([
+        new MessageButton()
+          .setCustomId(`page-${listPage - 1}`)
+          .setLabel(`< Page ${listPage}`)
+          .setStyle('SECONDARY')
+          .setDisabled(listPage === 0),
+        new MessageButton()
+          .setCustomId(`page-${listPage + 1}`)
+          .setLabel(`Page ${listPage + 2} >`)
+          .setStyle('SECONDARY')
+          .setDisabled(listPage === pageCount - 1)
+      ]);
+    }
+
+    components.push(actionRow);
+
+    return { embeds: [embed], components };
   }
 
   embed.setDescription(`You have ${items.length} ${items.length === 1 ? type : pluralize(type)}.`);
@@ -231,7 +272,7 @@ const getExamineEmbed = (userId) => {
   const utilityRow = new MessageActionRow()
     .addComponents([
       new MessageButton()
-        .setCustomId(`goto-${DialogIds.MAIN_MENU}`)
+        .setCustomId(`shutdown`)
         .setLabel('DONE')
         .setStyle('SECONDARY')
     ]);
@@ -279,7 +320,7 @@ const respond = async (interaction) => {
   // const inventory = _inventory || await getInventory(id);
   const response = await getResponse(userId);
   // console.log('RESPONSE', response);
-  interaction.editReply(response);
+  await interaction.editReply(response);
 
   // ------------------------------- HANDLERS ------------------------------------
   const filterButtons = i => i.user.id === userId;
@@ -302,10 +343,10 @@ const respond = async (interaction) => {
       await store.dispatch(craftActions.saveData({ userId, data: { thread: newThread } }));
       respond(interaction);
 
-    } else if (customId.startsWith('craft-')) {
-      const [, itemIndex, itemTypesString] = customId.split('-');
+    } else if (customId.startsWith('list-')) {
+      const [, listPage, itemIndex, itemTypesString] = customId.split('-');
       const itemTypes = itemTypesString.split(',');
-      const newThread = { ...thread, dialogId: DialogIds.LIST, data: { ...thread.data, itemIndex: Number(itemIndex), itemTypes } };
+      const newThread = { ...thread, dialogId: DialogIds.LIST, data: { ...thread.data, itemIndex: Number(itemIndex), itemTypes, listPage: Number(listPage) } };
       await store.dispatch(craftActions.saveData({ userId, data: { thread: newThread } }));
       const { thread: thread2 } = craftSelectors.select(store.getState())[userId];
       console.log('new thread', thread2);
@@ -355,6 +396,18 @@ const respond = async (interaction) => {
         await dispatch(craftActions.saveData({ userId, data: { thread: newThread } }));
         respond(interaction);
       }
+
+    } else if (customId.startsWith('page-')) {
+      const [, page] = customId.split('-');
+      const newThread = { ...thread, data: { ...thread.data, listPage: Number(page) } };
+      await store.dispatch(craftActions.saveData({ userId, data: { thread: newThread } }));
+      respond(interaction);
+
+    } else if (customId === 'shutdown') {
+      console.log('shutting down');
+      await dispatch(craftActions.saveData({ userId, data: { thread: new Thread() } }));
+      await interaction.editReply({ embeds: [], components: [], content: 'The forge has powered down.' });
+
     } else {
       console.error('no button match', customId);
     }
@@ -411,7 +464,12 @@ module.exports = {
     }[interaction.options.getSubcommand()];
 
     if (command) {
-      await command();
+      try {
+        await command();
+      } catch (error) {
+        console.error(error);
+        await interaction.editReply({ content: 'Something exploded.' });
+      }
     }
   }
 };

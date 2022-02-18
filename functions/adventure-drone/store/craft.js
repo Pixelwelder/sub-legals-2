@@ -134,9 +134,10 @@ const forge = createAsyncThunk(`${name}/forge`, async ({ userId, data }, { dispa
       transaction.delete(getFirestore().collection('discord_inventory').doc(schematic.uid));
 
       // Reload inventory.
-      const inventoryDocs = await getFirestore().collection('discord_inventory').where('player', '==', userId).get();
-      const newInventory = inventoryDocs.docs.map(doc => doc.data());
-      dispatch(generatedActions.setData({ userId, data: { inventory: newInventory } }));
+      // const inventoryDocs = await getFirestore().collection('discord_inventory').where('player', '==', userId).get();
+      // const newInventory = inventoryDocs.docs.map(doc => doc.data());
+      // dispatch(generatedActions.setData({ userId, data: { inventory: newInventory } }));
+      dispatch(loadData({ userId }));
 
       // Now remove the thread that got us here.
       // transaction.delete(getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(userId));
