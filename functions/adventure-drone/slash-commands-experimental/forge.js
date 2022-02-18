@@ -15,150 +15,24 @@ const capitalize = require('../../utils/capitalize');
 const pluralize = require('../../utils/pluralize');
 const createParts = require('./forge/createParts');
 const sortByType = require('../../utils/sortByType');
-const { dispatch } = require('../store');
 const Thread = require('../data/Thread');
 const getButtonGrid = require('../../utils/getButtonGrid');
+const getMainMenuEmbed = require('./forge/getMainMenuEmbed');
+const getSchematicEmbed = require('./forge/getSchematicEmbed');
+const getImage = require('./forge/getImage');
+
+const { dispatch } = store;
 // -----------------------------------------------------------------------------
 
 
 
 
 // -----------------------------------------------------------------------------
-const imageRoot = 'http://storage.googleapis.com/species-registry.appspot.com/images/discord/ui';
-const getImage = ({ dialogId = 0 } = {}) => {
-  return `${imageRoot}/nanoforge.jpg`;
-};
+
 
 const getAbort = (userId, response = {}) => {
   getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(userId).delete();
   return { embeds: [], components: [], content: 'The Nanoforge has encountered a catastrophic error. Please try again.', ...response };
-};
-
-const getMainMenuEmbed = (userId) => {
-  const { thread, inventory } = craftSelectors.select(store.getState())[userId];
-  const { data } = thread;
-  const { schematicPage = 0 } = data;
-
-  const embed = new MessageEmbed()
-    .setColor('0x000000')
-    .setTitle('NANOFORGE | ONLINE')
-    .setImage(getImage(thread));
-
-  // Add a button for each inventory item of type SCHEMATIC.
-  const schematics = inventory.filter(item => item.type === ItemTypes.SCHEMATIC);
-  console.log('schematics', schematics.length);
-  
-  const actionRow = new MessageActionRow();
-  let components;
-  if (schematics.length) {
-    components = getButtonGrid({ items: schematics, page: schematicPage, name: 'schematic' });
-  } else {
-    components = [
-      new MessageActionRow()
-        .addComponents([
-          new MessageButton()
-            .setCustomId('disabled')
-            .setLabel('No Schematics')
-            .setStyle('SECONDARY')
-            .setDisabled(true)
-        ])
-    ];
-  }
-  // Add description.
-  embed.setDescription(`You have ${schematics.length} schematic${schematics.length === 1 ? '' : 's'}.`);
-  return { embeds: [embed], components };
-};
-
-const getSchematicEmbed = async (userId) => {
-  const { thread, inventory } = craftSelectors.select(store.getState())[userId];
-  const { data } = thread;
-  const { constructionProject } = data;
-
-  // Grab the schematic.
-  const schematic = inventory.find(item => item.uid === data.schematicUid);
-  if (!schematic) return getAbort(userId, { content: 'The schematic has disappeared.' });
-
-  // Sort the items into types.
-  const itemsByType = sortByType(inventory);
-  const getAvailableItems = (options) => {
-    return options.reduce((acc, option) => {
-      const items = itemsByType[option];
-      return items ? [...acc, ...items] : acc;
-    }, []);
-  };
-
-  // Do we have a construction project?
-  if (!constructionProject) {
-    // Create a new construction project.
-    const constructionProject = new ConstructionProject(schematic);
-
-    // It's possible that we only have one of some categories, in which case we should just assign them to the construction project.
-    schematic.data.parts.forEach((partDef, index) => {
-      const { displayName, requires, options } = partDef;
-      const availableItems = getAvailableItems(options);
-      if (availableItems.length === 1) {
-        constructionProject.partUids[index] = availableItems[0].uid;
-      }
-    });
-
-    const newThread = { ...thread, data: { ...thread.data, constructionProject } };
-    await dispatch(craftActions.saveData({ userId, data: { thread: newThread } }));
-
-    // TODO Investigate this React-like approach.
-    // return { content: 'New construction' };
-    return getSchematicEmbed(userId);
-  }
-
-  const embed = new MessageEmbed()
-    .setColor('0x000000')
-    .setTitle(`SCHEMATIC | ${schematic.displayName.toUpperCase()}`)
-    .setImage(getImage(thread));
-
-  // Now we go through the required items.
-  const partsRow = new MessageActionRow()
-    .addComponents(
-      schematic.data.parts.map((partDef, index) => {
-        const { displayName, requires, options } = partDef;
-
-        // Do we have any of the options?
-        const availableItems = getAvailableItems(options);
-
-        // If no item is selected, the button shows the displayName of the part specification.
-        // If an item is selected, the button shows the displayName of the item.
-        let label = `${partDef.displayName} (${availableItems.length})`;
-        let style = 'DANGER';
-        const selectedItemId = constructionProject.partUids[index];
-        if (selectedItemId) {
-          const selectedItem = inventory.find(item => item.uid === selectedItemId);
-          label = selectedItem.displayName;
-          style = 'SUCCESS';
-        }
-
-        return new MessageButton()
-          // schematicPage, itemIndex, itemTypesString
-          .setCustomId(`list-0-${index}-${options.reduce((acc, option, index) => `${acc}${acc ? ',' : ''}${option}`, '')}`)
-          .setLabel(label)
-          .setStyle(style)
-          .setDisabled(!availableItems.length);
-      })
-    );
-
-    let disabled = constructionProject.partUids.includes('');
-    const utilityRow = new MessageActionRow()
-      .addComponents([
-        new MessageButton()
-          .setCustomId(`goto-${DialogIds.MAIN_MENU}`)
-          .setLabel('< Back')
-          .setStyle('SECONDARY'),
-
-        new MessageButton()
-          .setCustomId('forge')
-          .setLabel('FORGE')
-          .setStyle('PRIMARY')
-          .setDisabled(disabled)
-    ]);
-  
-    return { embeds: [embed], components: [partsRow, utilityRow] };
 };
 
 const getListEmbed = (userId) => {
