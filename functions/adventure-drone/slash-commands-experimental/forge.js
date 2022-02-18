@@ -20,6 +20,9 @@ const getButtonGrid = require('../../utils/getButtonGrid');
 const getMainMenuEmbed = require('./forge/getMainMenuEmbed');
 const getSchematicEmbed = require('./forge/getSchematicEmbed');
 const getImage = require('./forge/getImage');
+const getAbort = require('./forge/getAbort');
+const getListEmbed = require('./forge/getListEmbed');
+const getExamineEmbed = require('./forge/getExamineEmbed');
 
 const { dispatch } = store;
 // -----------------------------------------------------------------------------
@@ -29,67 +32,6 @@ const { dispatch } = store;
 
 // -----------------------------------------------------------------------------
 
-
-const getAbort = (userId, response = {}) => {
-  getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(userId).delete();
-  return { embeds: [], components: [], content: 'The Nanoforge has encountered a catastrophic error. Please try again.', ...response };
-};
-
-const getListEmbed = (userId) => {
-  const { thread, inventory } = craftSelectors.select(store.getState())[userId];
-  const { data } = thread;
-  const { itemTypes, itemIndex = -1, constructionProject, itemPage = 0 } = data;
-
-  if (!itemTypes || !itemTypes.length) return getAbort(userId, { content: 'No itemTypes.' });
-  if (itemIndex === -1) return getAbort(userId, { content: 'No itemIndex.' });
-  const selectedUid = constructionProject.partUids[itemIndex];
-
-  const itemsByType = sortByType(inventory);
-  const availableItems = itemTypes.reduce((acc, option) => {
-    const items = itemsByType[option];
-    return items ? [...acc, ...items] : acc;
-  }, []);
-
-  const embed = new MessageEmbed()
-    .setColor('0x000000')
-    .setTitle(`NANOFORGE | CHOOSE ITEM`)
-    .setImage(getImage(thread))
-    .setDescription(`You have ${availableItems.length} items.`);
-
-  const components = getButtonGrid({
-    items: availableItems, backId: `goto-${DialogIds.SCHEMATIC}`, page: itemPage, selectedUid, name: 'item'
-  });
-  return { embeds: [embed], components };
-};
-
-const getExamineEmbed = (userId) => {
-  const { thread, inventory } = craftSelectors.select(store.getState())[userId];
-  const { data } = thread;
-  const { itemUid } = data;
-
-  if (!itemUid) return getAbort(userId, { content: 'No itemUid.' });
-
-  console.log('getExamineEmbed', itemUid);
-  console.log(inventory);
-  const item = inventory.find(item => item.uid === itemUid);
-  if (!item) return getAbort(userId, { content: 'No item.' });
-
-  const embed = new MessageEmbed()
-    .setColor('0x000000')
-    .setTitle(`NANOFORGE | EXAMINE`)
-    .setImage(getImage(thread))
-    .setDescription(item.description);
-
-  const utilityRow = new MessageActionRow()
-    .addComponents([
-      new MessageButton()
-        .setCustomId(`shutdown`)
-        .setLabel('DONE')
-        .setStyle('SECONDARY')
-    ]);
-
-  return { embeds: [embed], components: [utilityRow] };
-}
 
 const getResponse = (userId) => {
   const { thread } = craftSelectors.select(store.getState())[userId];
@@ -106,31 +48,10 @@ const getResponse = (userId) => {
   return getAbort(userId, { content: `No embed factory for ${thread.dialogId}.` });
 };
 
-// const getThread = async (id) => {
-//   // Do we have an in-flight UI thread?
-//   let threadRef = getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(id);
-//   const threadDoc = await threadRef.get();
-//   return threadDoc.exists ? threadDoc.data() : new Thread();
-// };
-
-// const getInventory = async (id) => {
-//   const inventoryDocs = await getFirestore().collection('discord_inventory').where('player', '==', id).get();
-//   return inventoryDocs.size > 0 ? inventoryDocs.docs.map(doc => doc.data()) : [];
-// };
-
 const respond = async (interaction) => {
+  // ------------------------------- RENDER ------------------------------------
   const userId = interaction.member.id;
-  // const {
-  //   thread: _thread,
-  //   inventory: _inventory,
-  //   id: _id
-  // } = state;
-
-  // const id = _id || interaction.member.id;
-  // const thread = _thread || await getThread(id);
-  // const inventory = _inventory || await getInventory(id);
   const response = await getResponse(userId);
-  // console.log('RESPONSE', response);
   await interaction.editReply(response);
 
   // ------------------------------- HANDLERS ------------------------------------
