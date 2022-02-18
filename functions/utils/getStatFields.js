@@ -1,6 +1,6 @@
 const { getBar, fullSquare, pendingSquare, emptySquare } = require('./getBar');
 
-const getStatFields = (stats, statChanges, { inline = false } = {}) => {
+const getStatFields = (stats, statChanges = [0, 0, 0, 0, 0, 0, 0], { inline = false } = {}) => {
   const fields = stats.map((stat, index) => {
     // let value = getBar(stat.value, stat.max);
 

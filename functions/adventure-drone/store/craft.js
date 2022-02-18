@@ -148,7 +148,7 @@ const forge = createAsyncThunk(`${name}/forge`, async ({ userId, data }, { dispa
   // Create a Firestore transaction.
   const result = await getFirestore().runTransaction(async (transaction) => {
     console.log('running transaction');
-    try {
+    // try {
       const docRef = getFirestore().collection('discord_inventory').doc();
       const newItem = new PersonalInventoryItem({
         uid: docRef.id,
@@ -178,10 +178,10 @@ const forge = createAsyncThunk(`${name}/forge`, async ({ userId, data }, { dispa
       // Now we wait.
       console.log('--- forging complete ---');
       return { success: true, newItem };
-    } catch (error) {
-      console.error('ERROR', error);
-      return { success: false, error };
-    }
+    // } catch (error) {
+    //   console.error('ERROR', error);
+    //   return { success: false, error };
+    // }
   });
 
   // Reload inventory.
