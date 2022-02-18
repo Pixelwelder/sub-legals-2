@@ -39,6 +39,7 @@ const loadData = createAsyncThunk(`${name}/loadData`, async ({ userId }, { dispa
     if (playerDocs.size) data.player = playerDocs.docs[0].data();
     
     const inventoryDocs = await getFirestore().collection('discord_inventory').where('player', '==', userId).get();
+    console.log('--- loaded inventory', inventoryDocs.docs.map(doc => doc.data().uid));
     data.inventory = inventoryDocs.docs.length ? inventoryDocs.docs.map(doc => doc.data()) : [];
 
     const threadDoc = await getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(userId).get();
@@ -130,24 +131,20 @@ const forge = createAsyncThunk(`${name}/forge`, async ({ userId, data }, { dispa
       const { data = {} } = item;
       const { statModifiers = {} } = data;
       if (statModifiers) {
-        const temp = [0, 0, 0, 0, 0, 0, 0]; // TODO Assumes SPECIAL.
         Object.entries(statModifiers).forEach(([statName, statValue]) => {
           const index = StatIndexes[statName];
-          temp[index] += statValue;
-        });
-
-        console.log('temp', temp);
-        temp.forEach((value, index) => {
           const stat = statsArr[index];
-          stat.value = Math.max(0, value);
+          stat.value = statValue
         });
-        console.log('stats', statsArr);
       }
       return statsArr;
     }, new Stats());
 
-  console.log('found stats', stats);
-  
+  // Now make sure all stats have a value of at least their min.
+  stats.forEach((stat) => {
+    if (stat.value < stat.min) stat.value = stat.min;
+  });
+
   // Create a Firestore transaction.
   const result = await getFirestore().runTransaction(async (transaction) => {
     console.log('running transaction');
@@ -176,14 +173,9 @@ const forge = createAsyncThunk(`${name}/forge`, async ({ userId, data }, { dispa
       // Delete the schematic.
       transaction.delete(getFirestore().collection('discord_inventory').doc(schematic.uid));
 
-      // Reload inventory.
-      // const inventoryDocs = await getFirestore().collection('discord_inventory').where('player', '==', userId).get();
-      // const newInventory = inventoryDocs.docs.map(doc => doc.data());
-      // dispatch(generatedActions.setData({ userId, data: { inventory: newInventory } }));
-      dispatch(loadData({ userId }));
-
       // Now remove the thread that got us here.
       // transaction.delete(getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(userId));
+      // Now we wait.
       console.log('--- forging complete ---');
       return { success: true, newItem };
     } catch (error) {
@@ -191,6 +183,9 @@ const forge = createAsyncThunk(`${name}/forge`, async ({ userId, data }, { dispa
       return { success: false, error };
     }
   });
+
+  // Reload inventory.
+  await dispatch(loadData({ userId }));
 
   return result;
 });

@@ -7,7 +7,6 @@ const getSummaryString = (stats = {}) => {
     return acc ? `${acc} ${string}` : string;
   }, '');
 
-  console.log('summary string', str);
   return str;
 };
 

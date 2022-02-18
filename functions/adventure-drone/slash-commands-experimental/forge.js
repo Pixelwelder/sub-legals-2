@@ -147,12 +147,7 @@ module.exports = {
         .setDescription('Create test items.'))
       .addSubcommand(subcommand => subcommand
         .setName('reset')
-        .setDescription('Reset a user\'s forging state.')
-        .addUserOption(option => option
-          .setName('resident')
-          .setDescription('The station resident to to reset.')
-          .setRequired(true)
-        )),
+        .setDescription('Reset a user\'s forging state.')),
 
   async execute(interaction, character) {
     const command = {
@@ -171,9 +166,9 @@ module.exports = {
       },
       reset: async () => {
         await interaction.deferReply({ ephemeral: true });
-        const { id } = interaction.options.getUser('resident');
-        await store.dispatch(craftActions.resetUser({ userId: id }));
-        await interaction.editReply({ content: `Reset <@${id}>'s crafting state.` });
+        const userId = interaction.member.id;
+        await store.dispatch(craftActions.resetUser({ userId }));
+        await interaction.editReply({ content: `Reset <@${userId}>'s crafting state.` });
       }
     }[interaction.options.getSubcommand()];
 

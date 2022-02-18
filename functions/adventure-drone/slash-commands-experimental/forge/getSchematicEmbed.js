@@ -5,6 +5,8 @@ const getImage = require('./getImage');
 const sortByType = require('../../../utils/sortByType');
 const ConstructionProject = require('../../data/constructionProject');
 const DialogIds = require('../../data/DialogIds');
+const getSummaryString = require('./getSummaryString');
+const getAbort = require('./getAbort');
 
 const { dispatch } = store;
 
@@ -56,6 +58,7 @@ const getSchematicEmbed = async (userId) => {
   // Now we go through the required items.
   const partsRow = new MessageActionRow()
     .addComponents(
+      // TODO Wrap these.
       schematic.data.parts.map((partDef, index) => {
         const { displayName, requires, options } = partDef;
 
@@ -70,6 +73,10 @@ const getSchematicEmbed = async (userId) => {
         if (selectedItemId) {
           const selectedItem = inventory.find(item => item.uid === selectedItemId);
           label = selectedItem.displayName;
+          if (selectedItem?.data?.statModifiers) {
+            label = `${label} ${getSummaryString(selectedItem.data.statModifiers)}`;
+          }
+          
           style = 'SUCCESS';
         }
 

@@ -39,33 +39,35 @@ const StatsByType = {
 
 const createParts = async (interaction, { adminId = '685513488411525164' } = {}) => {
   // Create a bunch of parts in firestore and give them all to USKillbotics (685513488411525164).
-  [ItemTypes.CHASSIS, ItemTypes.CORE, ItemTypes.SENSOR, ItemTypes.DRIVETRAIN, ItemTypes.TOOL, ItemTypes.WEAPON]
-    .forEach(async type => {
-      const possibilities = StatsByType[type];
-      const statModifiers = possibilities.reduce((acc, stat) => {
-        const value = Math.floor(Math.random() * 4) - 1;
-        return value ? { ...acc, [stat]: value } : acc;
-      }, {});
+  const userId = interaction.member.id;
+  const types = [ItemTypes.CHASSIS, ItemTypes.CORE, ItemTypes.SENSOR, ItemTypes.DRIVETRAIN];
+  types.push(Math.random() > 0.5 ? ItemTypes.TOOL : ItemTypes.WEAPON);
+  types.forEach(async type => {
+    const possibilities = StatsByType[type];
+    const statModifiers = possibilities.reduce((acc, stat) => {
+      const value = Math.floor(Math.random() * 4) - 1;
+      return value ? { ...acc, [stat]: value } : acc;
+    }, {});
 
-      const doc = getFirestore().collection('discord_inventory').doc();
-      const item = new DronePart({
-        uid: doc.id,
-        player: adminId,
-        type,
-        displayName: `${capitalize(type)} ${Math.floor(Math.random() * 100)}`,
-        description: 'Looks pretty beat up.',
-        image: `parts_${Math.floor(Math.random() * 45)}.png`,
-        data: { statModifiers }
-      });
-      await doc.set(item);
+    const doc = getFirestore().collection('discord_inventory').doc();
+    const item = new DronePart({
+      uid: doc.id,
+      player: userId,
+      type,
+      displayName: `${capitalize(type)}`,
+      description: 'A drone part.',
+      image: `parts_${Math.floor(Math.random() * 45)}.png`,
+      data: { statModifiers }
     });
+    await doc.set(item);
+  });
 
   // Create schematic.
   const doc = getFirestore().collection('discord_inventory').doc();
   const item = new DroneSchematic({
-    displayName: `Generic Drone ${Math.floor(Math.random() * 100)}`,
+    displayName: `Basic Drone Schematic`,
     uid: doc.id,
-    player: adminId,
+    player: userId,
     image: `parts_12.png`
   });
   console.log('ITEM', item);

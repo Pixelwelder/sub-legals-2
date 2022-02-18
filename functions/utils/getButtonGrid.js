@@ -22,8 +22,6 @@ const getButtonGrid = ({ items, backId, page, name, selectedUid }) => {
   const endIndex = Math.min(startIndex + pageSize, items.length);
   const displayedItems = items.slice(startIndex, endIndex);
 
-  console.log('getButtonGrid:', page, startIndex, endIndex, items.length, items.length);
-
   // Create the buttons.
   if (displayedItems.length) {
     // Now wrap the array.
@@ -32,9 +30,11 @@ const getButtonGrid = ({ items, backId, page, name, selectedUid }) => {
     items2D.forEach((row) => {
       const actionRow = new MessageActionRow();
       const buttons = row.map(item => {
-        console.log('ITEM', item);
         let label = item.displayName;
-        if (item?.data?.statModifiers) label = `${label} ${getSummaryString(item.data.statModifiers)}`;
+        if (item?.data?.statModifiers) {
+          const summary = getSummaryString(item.data.statModifiers);
+          label = `${label} ${summary}`;
+        }
         return new MessageButton()
           .setCustomId(`${name}-${item.uid}`)
           .setLabel(label)
