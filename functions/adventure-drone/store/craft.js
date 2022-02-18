@@ -19,7 +19,8 @@ const initialState = {
             schematicUid: '',
             partUids: []
           },
-          listPage: 0
+          schematicListPage: 0,
+          itemListPage: 0
         }
       }
     }

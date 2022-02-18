@@ -37,7 +37,7 @@ const getAbort = (userId, response = {}) => {
 const getMainMenuEmbed = (userId) => {
   const { thread, inventory } = craftSelectors.select(store.getState())[userId];
   const { data } = thread;
-  const { schematicListPage } = data;
+  const { schematicPage = 0 } = data;
 
   const embed = new MessageEmbed()
     .setColor('0x000000')
@@ -46,34 +46,26 @@ const getMainMenuEmbed = (userId) => {
 
   // Add a button for each inventory item of type SCHEMATIC.
   const schematics = inventory.filter(item => item.type === ItemTypes.SCHEMATIC);
-  const components = getButtonGrid(schematics, null, schematicListPage /* selectedUid */);
+  console.log('schematics', schematics.length);
   
   const actionRow = new MessageActionRow();
-  let buttons;
+  let components;
   if (schematics.length) {
-    buttons = schematics.map(schematic => {
-      return new MessageButton()
-        .setCustomId(`schematic-${schematic.uid}`)
-        .setLabel(schematic.displayName)
-        .setStyle('SECONDARY');
-    });
+    components = getButtonGrid({ items: schematics, page: schematicPage, name: 'schematic' });
   } else {
-    buttons = [
-      new MessageButton()
-        .setCustomId('disabled')
-        .setLabel('No Schematics')
-        .setStyle('SECONDARY')
-        .setDisabled(true)
+    components = [
+      new MessageActionRow()
+        .addComponents([
+          new MessageButton()
+            .setCustomId('disabled')
+            .setLabel('No Schematics')
+            .setStyle('SECONDARY')
+            .setDisabled(true)
+        ])
     ];
   }
-  actionRow.addComponents(buttons);
-  components.push(actionRow);
-
   // Add description.
   embed.setDescription(`You have ${schematics.length} schematic${schematics.length === 1 ? '' : 's'}.`);
-  // const fields = schematics.map(schematic => ({ name: schematic.displayName, value: schematic.description || 'No description.' }));
-  // embed.addFields(fields);
-
   return { embeds: [embed], components };
 };
 
@@ -143,7 +135,7 @@ const getSchematicEmbed = async (userId) => {
         }
 
         return new MessageButton()
-          // schematicListPage, itemIndex, itemTypesString
+          // schematicPage, itemIndex, itemTypesString
           .setCustomId(`list-0-${index}-${options.reduce((acc, option, index) => `${acc}${acc ? ',' : ''}${option}`, '')}`)
           .setLabel(label)
           .setStyle(style)
@@ -172,7 +164,7 @@ const getSchematicEmbed = async (userId) => {
 const getListEmbed = (userId) => {
   const { thread, inventory } = craftSelectors.select(store.getState())[userId];
   const { data } = thread;
-  const { itemTypes, itemIndex = -1, constructionProject, itemListPage = 0 } = data;
+  const { itemTypes, itemIndex = -1, constructionProject, itemPage = 0 } = data;
 
   if (!itemTypes || !itemTypes.length) return getAbort(userId, { content: 'No itemTypes.' });
   if (itemIndex === -1) return getAbort(userId, { content: 'No itemIndex.' });
@@ -191,7 +183,7 @@ const getListEmbed = (userId) => {
     .setDescription(`You have ${availableItems.length} items.`);
 
   const components = getButtonGrid({
-    items: availableItems, backId: `goto-${DialogIds.SCHEMATIC}`, page: itemListPage, selectedUid
+    items: availableItems, backId: `goto-${DialogIds.SCHEMATIC}`, page: itemPage, selectedUid, name: 'item'
   });
   return { embeds: [embed], components };
 };
@@ -289,9 +281,9 @@ const respond = async (interaction) => {
       respond(interaction);
 
     } else if (customId.startsWith('list-')) {
-      const [, itemListPage, itemIndex, itemTypesString] = customId.split('-');
+      const [, page, itemIndex, itemTypesString] = customId.split('-');
       const itemTypes = itemTypesString.split(',');
-      const newThread = { ...thread, dialogId: DialogIds.LIST, data: { ...thread.data, itemIndex: Number(itemIndex), itemTypes, itemListPage: Number(itemListPage) } };
+      const newThread = { ...thread, dialogId: DialogIds.LIST, data: { ...thread.data, itemIndex: Number(itemIndex), itemTypes, itemPage: Number(page) } };
       await store.dispatch(craftActions.saveData({ userId, data: { thread: newThread } }));
       const { thread: thread2 } = craftSelectors.select(store.getState())[userId];
       console.log('new thread', thread2);
@@ -300,12 +292,11 @@ const respond = async (interaction) => {
 
     } else if (customId.startsWith('schematic-')) {
       const [, schematicUid] = customId.split('-');
-      // TODO Gotta test this.
       const newThread = { ...thread, dialogId: DialogIds.SCHEMATIC, data: { ...thread.data, schematicUid } };
       await store.dispatch(craftActions.saveData({ userId, data: { thread: newThread } }));
       respond(interaction);
     
-    } else if (customId.startsWith('install-')) {
+    } else if (customId.startsWith('item-')) {
       const [, itemUid] = customId.split('-');
       const { itemIndex } = thread.data;
 
@@ -343,8 +334,8 @@ const respond = async (interaction) => {
       }
 
     } else if (customId.startsWith('page-')) {
-      const [, page] = customId.split('-');
-      const newThread = { ...thread, data: { ...thread.data, itemListPage: Number(page) } };
+      const [, name, page] = customId.split('-');
+      const newThread = { ...thread, data: { ...thread.data, [`${name}Page`]: Number(page) } };
       await store.dispatch(craftActions.saveData({ userId, data: { thread: newThread } }));
       respond(interaction);
 

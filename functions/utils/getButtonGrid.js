@@ -10,7 +10,7 @@ const wrapArray = require('./wrapArray');
  * @param {*} selectedUid - the id of the currently selected item in this collection
  * @returns 
  */
-const getButtonGrid = ({ items, backId, page, selectedUid }) => {
+const getButtonGrid = ({ items, backId, page, name, selectedUid }) => {
   const buttonRows = [];
 
   // We might have more items than we can show. Therefore we paginate.
@@ -32,9 +32,9 @@ const getButtonGrid = ({ items, backId, page, selectedUid }) => {
       const actionRow = new MessageActionRow();
       const buttons = row.map(item => {
         return new MessageButton()
-          .setCustomId(`install-${item.uid}`)
+          .setCustomId(`${name}-${item.uid}`)
           .setLabel(item.displayName)
-          .setStyle(item.uid === selectedUid ? 'SUCCESS' : 'SECONDARY');
+          .setStyle(selectedUid && item.uid === selectedUid ? 'SUCCESS' : 'SECONDARY');
       });
       actionRow.addComponents(buttons);
       buttonRows.push(actionRow);
@@ -56,12 +56,12 @@ const getButtonGrid = ({ items, backId, page, selectedUid }) => {
   if (pageCount > 1) {
     controlRowButtons.push(
       new MessageButton()
-        .setCustomId(`page-${page - 1}`)
+        .setCustomId(`page-${name}-${page - 1}`)
         .setLabel(`< Page ${page}`)
         .setStyle('SECONDARY')
         .setDisabled(page === 0),
       new MessageButton()
-        .setCustomId(`page-${page + 1}`)
+        .setCustomId(`page-${name}-${page + 1}`)
         .setLabel(`Page ${page + 2} >`)
         .setStyle('SECONDARY')
         .setDisabled(page === pageCount - 1)
