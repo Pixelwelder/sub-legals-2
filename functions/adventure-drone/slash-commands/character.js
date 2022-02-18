@@ -1,12 +1,10 @@
 const { SlashCommandBuilder } = require("@discordjs/builders");
 const { MessageEmbed, MessageButton, MessageActionRow, ContextMenuInteraction } = require("discord.js");
 const { getFirestore } = require('firebase-admin/firestore');
-const { getStorage } = require('firebase-admin/storage');
 const { Character } = require('@pixelwelders/tlh-universe-data');
 const wrapArray = require('../../utils/wrapArray');
 const xp = require('../../utils/xp');
 const ordinal = require('../../utils/ordinal');
-const { getBar, fullSquare, emptySquare, fullPoint, emptyPoint } = require('../../utils/getBar');
 const getCharacterEmbed = require('../../utils/getCharacterEmbed');
 
 const StatNames = {
@@ -125,7 +123,7 @@ const showCharacter = async (
     // Get the character and bail early if we don't have one.
     const characterDocs = await getFirestore().collection('discord_characters').where('player', '==', interaction.member.id).get();
     if (characterDocs.empty) {
-      return interaction.editReply(`You don't have a character yet. Use \`/character create\` to create one.`);
+      return interaction.editReply(`You don't have a character yet. Use \`/character clone\` to create one.`);
     }
 
     character = characterDocs.docs[0].data();

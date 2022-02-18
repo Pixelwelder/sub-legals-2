@@ -1,5 +1,5 @@
 const { MessageActionRow, MessageButton } = require('discord.js');
-const getSummaryString = require('../adventure-drone/slash-commands-experimental/forge/getSummaryString');
+const getSummaryString = require('./getSummaryString');
 const wrapArray = require('./wrapArray');
 
 /**

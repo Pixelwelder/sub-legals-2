@@ -1,5 +1,6 @@
 const fullSquare = '🟥';
 const emptySquare = '⬛';
+const pendingSquare = '🟦';
 const fullPoint = '🔴';
 const emptyPoint = '⚫';
 
@@ -19,6 +20,7 @@ module.exports = {
   getBar,
   fullSquare,
   emptySquare,
+  pendingSquare,
   fullPoint,
   emptyPoint
 };

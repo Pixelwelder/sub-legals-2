@@ -144,10 +144,10 @@ module.exports = {
         .setDescription('Start forging an item.'))
       .addSubcommand(subcommand => subcommand
         .setName('setup')
-        .setDescription('Create test items.'))
+        .setDescription('Create a few test items for yourself.'))
       .addSubcommand(subcommand => subcommand
         .setName('reset')
-        .setDescription('Reset a user\'s forging state.')),
+        .setDescription(`If you're having issues with forging, try resetting.`)),
 
   async execute(interaction, character) {
     const command = {

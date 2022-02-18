@@ -5,7 +5,7 @@ const getImage = require('./getImage');
 const sortByType = require('../../../utils/sortByType');
 const ConstructionProject = require('../../data/constructionProject');
 const DialogIds = require('../../data/DialogIds');
-const getSummaryString = require('./getSummaryString');
+const getSummaryString = require('../../../utils/getSummaryString');
 const getAbort = require('./getAbort');
 
 const { dispatch } = store;
@@ -38,7 +38,7 @@ const getSchematicEmbed = async (userId) => {
       const { displayName, requires, options } = partDef;
       const availableItems = getAvailableItems(options);
       if (availableItems.length === 1) {
-        constructionProject.partUids[index] = availableItems[0].uid;
+        // constructionProject.partUids[index] = availableItems[0].uid;
       }
     });
 
@@ -67,8 +67,9 @@ const getSchematicEmbed = async (userId) => {
 
         // If no item is selected, the button shows the displayName of the part specification.
         // If an item is selected, the button shows the displayName of the item.
-        let label = `${partDef.displayName} (${availableItems.length})`;
-        let style = 'DANGER';
+        // let label = `[${partDef.displayName}] (${availableItems.length})`;
+        let label = `[${partDef.displayName}]`;
+        let style = 'SECONDARY';
         const selectedItemId = constructionProject.partUids[index];
         if (selectedItemId) {
           const selectedItem = inventory.find(item => item.uid === selectedItemId);

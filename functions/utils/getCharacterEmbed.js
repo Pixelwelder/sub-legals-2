@@ -1,5 +1,5 @@
 const { MessageEmbed } = require("discord.js");
-const { getBar, fullPoint, emptyPoint } = require("./getBar");
+const { getBar, fullPoint, emptyPoint, pendingSquare, emptySquare } = require("./getBar");
 const getStatFields = require('./getStatFields');
 
 const getCharacterEmbed = (user, { character, statChanges = [0, 0, 0, 0, 0, 0, 0] } = {}) => {
@@ -24,7 +24,7 @@ const getCharacterEmbed = (user, { character, statChanges = [0, 0, 0, 0, 0, 0, 0
       const statsUsed = statChanges.reduce((acc, stat) => acc + stat);
       fields.push({
         name: 'Available points',
-        value: getBar((character.statPoints || 0) - statsUsed, character.statPoints, fullPoint, emptyPoint),
+        value: getBar((character.statPoints || 0) - statsUsed, character.statPoints, pendingSquare, emptySquare),
         inline
       });
     }
