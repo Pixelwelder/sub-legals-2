@@ -6,6 +6,10 @@ function Schematic(overrides) {
   return new PersonalInventoryItem({
     type: ItemTypes.SCHEMATIC,
     displayName: 'Schematic',
+    data: {
+      outputType: '',
+      outputImage: ''
+    },
     ...overrides
   });
 }

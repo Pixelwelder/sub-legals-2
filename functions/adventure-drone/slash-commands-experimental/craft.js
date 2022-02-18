@@ -16,6 +16,7 @@ const pluralize = require('../../utils/pluralize');
 const createParts = require('./craft/createParts');
 const sortByType = require('../../utils/sortByType');
 const { dispatch } = require('../store');
+const Thread = require('../data/Thread');
 // -----------------------------------------------------------------------------
 
 
@@ -72,10 +73,29 @@ const getSchematicEmbed = async (userId) => {
   const schematic = inventory.find(item => item.uid === data.schematicUid);
   if (!schematic) return getAbort(userId, { content: 'The schematic has disappeared.' });
 
+  // Sort the items into types.
+  const itemsByType = sortByType(inventory);
+  const getAvailableItems = (options) => {
+    return options.reduce((acc, option) => {
+      const items = itemsByType[option];
+      return items ? [...acc, ...items] : acc;
+    }, []);
+  };
+
   // Do we have a construction project?
   if (!constructionProject) {
     // Create a new construction project.
     const constructionProject = new ConstructionProject(schematic);
+
+    // It's possible that we only have one of some categories, in which case we should just assign them to the construction project.
+    schematic.data.parts.forEach((partDef, index) => {
+      const { displayName, requires, options } = partDef;
+      const availableItems = getAvailableItems(options);
+      if (availableItems.length === 1) {
+        constructionProject.partUids[index] = availableItems[0].uid;
+      }
+    });
+
     const newThread = { ...thread, data: { ...thread.data, constructionProject } };
     await dispatch(craftActions.saveData({ userId, data: { thread: newThread } }));
 
@@ -90,38 +110,34 @@ const getSchematicEmbed = async (userId) => {
     .setImage(getImage(thread));
 
   // Now we go through the required items.
-  // First sort items into a map of arrays by type.
-  const itemsByType = sortByType(inventory);
-
-  let enabled = true;
   const partsRow = new MessageActionRow()
     .addComponents(
-      schematic.data.parts.map((part, index) => {
-        const { displayName, requires, options } = part;
+      schematic.data.parts.map((partDef, index) => {
+        const { displayName, requires, options } = partDef;
 
         // Do we have any of the options?
-        const availableItems = options.reduce((acc, option) => {
-          const items = itemsByType[option];
-          return items ? [...acc, ...items] : acc;
-        }, []);
+        const availableItems = getAvailableItems(options);
 
         // If no item is selected, the button shows the displayName of the part specification.
         // If an item is selected, the button shows the displayName of the item.
-        let label = `${part.displayName} (${availableItems.length})`;
+        let label = `${partDef.displayName} (${availableItems.length})`;
+        let style = 'DANGER';
         const selectedItemId = constructionProject.partUids[index];
         if (selectedItemId) {
           const selectedItem = inventory.find(item => item.uid === selectedItemId);
           label = selectedItem.displayName;
+          style = 'SUCCESS';
         }
 
         return new MessageButton()
           .setCustomId(`craft-${index}-${options.reduce((acc, option, index) => `${acc}${acc ? ',' : ''}${option}`, '')}`)
           .setLabel(label)
-          .setStyle('SECONDARY')
+          .setStyle(style)
           .setDisabled(!availableItems.length);
       })
     );
 
+    let disabled = constructionProject.partUids.includes('');
     const utilityRow = new MessageActionRow()
       .addComponents([
         new MessageButton()
@@ -131,21 +147,22 @@ const getSchematicEmbed = async (userId) => {
 
         new MessageButton()
           .setCustomId('forge')
-          .setLabel('Forge')
+          .setLabel('FORGE')
           .setStyle('PRIMARY')
-          .setDisabled(!enabled)
+          .setDisabled(disabled)
     ]);
   
-    return { embeds: [embed], components: [utilityRow, partsRow] };
+    return { embeds: [embed], components: [partsRow, utilityRow] };
 };
 
 const getListEmbed = (userId) => {
   const { thread, inventory } = craftSelectors.select(store.getState())[userId];
   const { data } = thread;
-  const { itemTypes, itemIndex } = data;
+  const { itemTypes, itemIndex = -1, constructionProject } = data;
 
-  if (!itemTypes) return getAbort(userId, { content: 'No itemTypes.' });
-  if (!itemIndex) return getAbort(userId, { content: 'No itemIndex.' });
+  if (!itemTypes || !itemTypes.length) return getAbort(userId, { content: 'No itemTypes.' });
+  if (itemIndex === -1) return getAbort(userId, { content: 'No itemIndex.' });
+  const selectedUid = constructionProject.partUids[itemIndex];
 
   const itemsByType = sortByType(inventory);
   const availableItems = itemTypes.reduce((acc, option) => {
@@ -160,14 +177,13 @@ const getListEmbed = (userId) => {
 
   // Grab the items in this category. Each one gets a button.
   // const items = inventory.filter(item => item.type === type);
-  console.log(inventory.length, availableItems.length);
   if (availableItems.length) {
     const partsRow = new MessageActionRow();
     const buttons = availableItems.map(part => {
       return new MessageButton()
         .setCustomId(`install-${part.uid}`)
         .setLabel(part.displayName)
-        .setStyle('SECONDARY');
+        .setStyle(part.uid === selectedUid ? 'SUCCESS' : 'SECONDARY');
     });
 
     const utilityRow = new MessageActionRow()
@@ -194,13 +210,44 @@ const getListEmbed = (userId) => {
   return { embeds: [embed], components: [utilityRow] };
 };
 
+const getExamineEmbed = (userId) => {
+  const { thread, inventory } = craftSelectors.select(store.getState())[userId];
+  const { data } = thread;
+  const { itemUid } = data;
+
+  if (!itemUid) return getAbort(userId, { content: 'No itemUid.' });
+
+  console.log('getExamineEmbed', itemUid);
+  console.log(inventory);
+  const item = inventory.find(item => item.uid === itemUid);
+  if (!item) return getAbort(userId, { content: 'No item.' });
+
+  const embed = new MessageEmbed()
+    .setColor('0x000000')
+    .setTitle(`NANOFORGE | EXAMINE`)
+    .setImage(getImage(thread))
+    .setDescription(item.description);
+
+  const utilityRow = new MessageActionRow()
+    .addComponents([
+      new MessageButton()
+        .setCustomId(`goto-${DialogIds.MAIN_MENU}`)
+        .setLabel('DONE')
+        .setStyle('SECONDARY')
+    ]);
+
+  return { embeds: [embed], components: [utilityRow] };
+}
+
 const getResponse = (userId) => {
   const { thread } = craftSelectors.select(store.getState())[userId];
+  console.log('getResponse', thread.dialogId);
 
   const embedFactory = {
     [DialogIds.MAIN_MENU]: getMainMenuEmbed,
     [DialogIds.SCHEMATIC]: getSchematicEmbed,
-    [DialogIds.LIST]: getListEmbed
+    [DialogIds.LIST]: getListEmbed,
+    [DialogIds.EXAMINE]: getExamineEmbed,
   }[thread.dialogId];
 
   if (embedFactory) return embedFactory(userId);
@@ -296,6 +343,20 @@ const respond = async (interaction) => {
       }))
       respond(interaction);
 
+    } else if (customId === 'forge') {
+      console.log('forging');
+      const { payload } = await dispatch(craftActions.forge({ userId }));
+      console.log('forge payload', payload);
+
+      if (payload.success) {
+        // Show the new item.
+        const newThread = new Thread({ dialogId: DialogIds.EXAMINE, data: { itemUid: payload.newItem.uid } });
+        console.log('new thread', newThread);
+        await dispatch(craftActions.saveData({ userId, data: { thread: newThread } }));
+        respond(interaction);
+      }
+    } else {
+      console.error('no button match', customId);
     }
   });
 

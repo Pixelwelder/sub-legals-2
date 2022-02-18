@@ -28,6 +28,7 @@ const createParts = async (interaction, { adminId = '685513488411525164' } = {})
     player: adminId,
     image: `parts_12.png`
   });
+  console.log('ITEM', item);
   await doc.set(item);
   interaction.editReply('Test items created.');
 };

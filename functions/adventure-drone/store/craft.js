@@ -2,6 +2,7 @@ const { createSlice, createAsyncThunk } = require('@reduxjs/toolkit');
 const { getFirestore } = require('firebase-admin/firestore');
 const Thread = require('../data/Thread');
 const ConstructionProject = require('../data/ConstructionProject');
+const { PersonalInventoryItem } = require('@pixelwelders/tlh-universe-data');
 
 const initialState = {
   /*
@@ -13,6 +14,7 @@ const initialState = {
           schemmaticUid - the selected item (schematic)
           itemTypes - the types of items to show (for a list)
           itemIndex - the index of the item being selected
+          itemUid - the item to view
           constructionProject: {
             schematicUid: '',
             partUids: []
@@ -67,7 +69,6 @@ const saveData = createAsyncThunk(`${name}/saveData`, async ({ userId, data }, {
     //   }
     // }
     if (data.thread) {
-      console.log(data.thread.data.constructionProject);
       await getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(userId).set({
         ...data.thread,
         updated: new Date().getTime()
@@ -91,6 +92,63 @@ const resetUser = createAsyncThunk(`${name}/resetUser`, async ({ userId }, { dis
   } catch (error) {
     console.error('ERROR', error);
   }
+});
+
+const forge = createAsyncThunk(`${name}/forge`, async ({ userId, data }, { dispatch, getState }) => {
+  console.log('--- forging ---');
+  const { thread, inventory } = getState().craft[userId];
+  const { constructionProject } = thread.data;
+  
+  console.log('found construction project', constructionProject);
+  // Create the new item.
+  // Grab the schematic.
+  const schematic = inventory.find(item => item.uid === constructionProject.schematicUid);
+  console.log('found schematic', schematic);
+
+  // Create the new item.
+  // Create a Firestore transaction.
+  const result = await getFirestore().runTransaction(async (transaction) => {
+    console.log('running transaction');
+    try {
+      const docRef = getFirestore().collection('discord_inventory').doc();
+      const newItem = new PersonalInventoryItem({
+        uid: docRef.id,
+        ...schematic.data.output,
+        data: {
+          schematic
+        },
+        player: userId
+      });
+      
+      transaction.set(docRef, newItem);
+      console.log('created new item', newItem);
+
+      // Now delete constituent items.
+      // TODO Consider just de-ownering them.
+      constructionProject.partUids.forEach(partUid => {
+        console.log('deleting', partUid);
+        transaction.delete(getFirestore().collection('discord_inventory').doc(partUid));
+      });
+
+      // Delete the schematic.
+      transaction.delete(getFirestore().collection('discord_inventory').doc(schematic.uid));
+
+      // Reload inventory.
+      const inventoryDocs = await getFirestore().collection('discord_inventory').where('player', '==', userId).get();
+      const newInventory = inventoryDocs.docs.map(doc => doc.data());
+      dispatch(generatedActions.setData({ userId, data: { inventory: newInventory } }));
+
+      // Now remove the thread that got us here.
+      // transaction.delete(getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(userId));
+      console.log('--- forging complete ---');
+      return { success: true, newItem };
+    } catch (error) {
+      console.error('ERROR', error);
+      return { success: false, error };
+    }
+  });
+
+  return result;
 });
 
 const { reducer, actions: generatedActions } = createSlice({
@@ -118,7 +176,7 @@ const { reducer, actions: generatedActions } = createSlice({
   // }
 });
 
-const actions = { loadData, resetUser, saveData };
+const actions = { loadData, resetUser, saveData, forge };
 const selectors = {
   select: state => state[name]
 };
