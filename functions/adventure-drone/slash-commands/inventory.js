@@ -91,6 +91,23 @@ const showItem = async (interaction, { ephemeral = false, verbose = false } = {}
     description = item.description;
   }
 
+  // Check for data.
+  const { data = {} } = item;
+  const { stats = {} } = data;
+  const statFields = Object.entries(stats).map(([key, value]) => {
+    console.log('stat', key, value);
+    return { name: capitalize(key), value: value.toString() };
+  });
+
+  const statString = Object.entries(stats).reduce((acc, [_name, _value], index) => {
+    const name = capitalize(_name);
+    const value = _value > 1 ? `+${_value}` : _value;
+    const string = `${value} ${name}`;
+    return acc ? `${acc}, ${string}` : string;
+  }, '');
+  // if (statFields.length > 0) embed.addFields(statFields);
+  description = `${description}\n\n${statString}`;
+
   if (description) embed.setDescription(description);
   if (!image) image = getImage(item, 'x1Url');
   embed.setImage(image);
