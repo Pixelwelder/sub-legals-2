@@ -18,7 +18,8 @@ const initialState = {
           constructionProject: {
             schematicUid: '',
             partUids: []
-          }
+          },
+          listPage: 0
         }
       }
     }

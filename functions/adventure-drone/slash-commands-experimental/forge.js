@@ -13,10 +13,11 @@ const DroneSchematic = require('../data/DroneSchematic');
 const ConstructionProject = require('../data/ConstructionProject');
 const capitalize = require('../../utils/capitalize');
 const pluralize = require('../../utils/pluralize');
-const createParts = require('./craft/createParts');
+const createParts = require('./forge/createParts');
 const sortByType = require('../../utils/sortByType');
 const { dispatch } = require('../store');
 const Thread = require('../data/Thread');
+const getButtonGrid = require('../../utils/getButtonGrid');
 // -----------------------------------------------------------------------------
 
 
@@ -35,15 +36,18 @@ const getAbort = (userId, response = {}) => {
 
 const getMainMenuEmbed = (userId) => {
   const { thread, inventory } = craftSelectors.select(store.getState())[userId];
+  const { data } = thread;
+  const { schematicListPage } = data;
+
   const embed = new MessageEmbed()
     .setColor('0x000000')
     .setTitle('NANOFORGE | ONLINE')
     .setImage(getImage(thread));
 
   // Add a button for each inventory item of type SCHEMATIC.
-  // TODO IMPORTANT Wrap at 5.
-  const components = [];
   const schematics = inventory.filter(item => item.type === ItemTypes.SCHEMATIC);
+  const components = getButtonGrid(schematics, null, schematicListPage /* selectedUid */);
+  
   const actionRow = new MessageActionRow();
   let buttons;
   if (schematics.length) {
@@ -139,7 +143,7 @@ const getSchematicEmbed = async (userId) => {
         }
 
         return new MessageButton()
-          // listPage, itemIndex, itemTypesString
+          // schematicListPage, itemIndex, itemTypesString
           .setCustomId(`list-0-${index}-${options.reduce((acc, option, index) => `${acc}${acc ? ',' : ''}${option}`, '')}`)
           .setLabel(label)
           .setStyle(style)
@@ -168,7 +172,7 @@ const getSchematicEmbed = async (userId) => {
 const getListEmbed = (userId) => {
   const { thread, inventory } = craftSelectors.select(store.getState())[userId];
   const { data } = thread;
-  const { itemTypes, itemIndex = -1, constructionProject, listPage = 0 } = data;
+  const { itemTypes, itemIndex = -1, constructionProject, itemListPage = 0 } = data;
 
   if (!itemTypes || !itemTypes.length) return getAbort(userId, { content: 'No itemTypes.' });
   if (itemIndex === -1) return getAbort(userId, { content: 'No itemIndex.' });
@@ -180,75 +184,16 @@ const getListEmbed = (userId) => {
     return items ? [...acc, ...items] : acc;
   }, []);
 
-  // We might have more items than we can show. Therefore we paginate.
-  // Since we can show 25 buttons, we will reserve one row of 5 for controls, leaving us 20.
-  const pageSize = 20;
-  const pageCount = Math.ceil(availableItems.length / pageSize);
-  const startIndex = listPage * pageSize;
-  const endIndex = Math.min(startIndex + pageSize, availableItems.length);
-  const items = availableItems.slice(startIndex, endIndex);
-
-  console.log('page:', listPage, startIndex, endIndex, items.length, availableItems.length);
-
   const embed = new MessageEmbed()
     .setColor('0x000000')
     .setTitle(`NANOFORGE | CHOOSE ITEM`)
-    .setImage(getImage(thread));
+    .setImage(getImage(thread))
+    .setDescription(`You have ${availableItems.length} items.`);
 
-  if (items.length) {
-    // Now wrap the array.
-    const rows = wrapArray(items, 5);
-    // Create buttons.
-    const components = rows.map((row, index) => {
-      const actionRow = new MessageActionRow();
-      const buttons = row.map(item => {
-        return new MessageButton()
-          .setCustomId(`install-${item.uid}`)
-          .setLabel(item.displayName)
-          .setStyle(item.uid === selectedUid ? 'SUCCESS' : 'SECONDARY');
-      });
-      actionRow.addComponents(buttons);
-      return actionRow;
-    });
-
-    const actionRow = new MessageActionRow()
-      .addComponents([
-        new MessageButton()
-          .setCustomId(`goto-${DialogIds.SCHEMATIC}`)
-          .setLabel('< Back')
-          .setStyle('SECONDARY')
-      ]);
-
-    if (pageCount > 1) {
-      actionRow.addComponents([
-        new MessageButton()
-          .setCustomId(`page-${listPage - 1}`)
-          .setLabel(`< Page ${listPage}`)
-          .setStyle('SECONDARY')
-          .setDisabled(listPage === 0),
-        new MessageButton()
-          .setCustomId(`page-${listPage + 1}`)
-          .setLabel(`Page ${listPage + 2} >`)
-          .setStyle('SECONDARY')
-          .setDisabled(listPage === pageCount - 1)
-      ]);
-    }
-
-    components.push(actionRow);
-
-    return { embeds: [embed], components };
-  }
-
-  embed.setDescription(`You have ${items.length} ${items.length === 1 ? type : pluralize(type)}.`);
-  const utilityRow = new MessageActionRow()
-    .addComponents([
-      new MessageButton()
-        .setCustomId(`goto-${DialogIds.SCHEMATIC}`)
-        .setLabel('< Back')
-        .setStyle('SECONDARY')
-    ]);
-  
-  return { embeds: [embed], components: [utilityRow] };
+  const components = getButtonGrid({
+    items: availableItems, backId: `goto-${DialogIds.SCHEMATIC}`, page: itemListPage, selectedUid
+  });
+  return { embeds: [embed], components };
 };
 
 const getExamineEmbed = (userId) => {
@@ -344,9 +289,9 @@ const respond = async (interaction) => {
       respond(interaction);
 
     } else if (customId.startsWith('list-')) {
-      const [, listPage, itemIndex, itemTypesString] = customId.split('-');
+      const [, itemListPage, itemIndex, itemTypesString] = customId.split('-');
       const itemTypes = itemTypesString.split(',');
-      const newThread = { ...thread, dialogId: DialogIds.LIST, data: { ...thread.data, itemIndex: Number(itemIndex), itemTypes, listPage: Number(listPage) } };
+      const newThread = { ...thread, dialogId: DialogIds.LIST, data: { ...thread.data, itemIndex: Number(itemIndex), itemTypes, itemListPage: Number(itemListPage) } };
       await store.dispatch(craftActions.saveData({ userId, data: { thread: newThread } }));
       const { thread: thread2 } = craftSelectors.select(store.getState())[userId];
       console.log('new thread', thread2);
@@ -399,7 +344,7 @@ const respond = async (interaction) => {
 
     } else if (customId.startsWith('page-')) {
       const [, page] = customId.split('-');
-      const newThread = { ...thread, data: { ...thread.data, listPage: Number(page) } };
+      const newThread = { ...thread, data: { ...thread.data, itemListPage: Number(page) } };
       await store.dispatch(craftActions.saveData({ userId, data: { thread: newThread } }));
       respond(interaction);
 
@@ -423,17 +368,17 @@ const respond = async (interaction) => {
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('craft')
-    .setDescription(`Craft an item.`)
+    .setName('forge')
+    .setDescription(`Create an item on the Nanoforge.`)
       .addSubcommand(subcommand => subcommand
         .setName('start')
-        .setDescription('Start crafting an item.'))
+        .setDescription('Start forging an item.'))
       .addSubcommand(subcommand => subcommand
         .setName('setup')
         .setDescription('Create test items.'))
       .addSubcommand(subcommand => subcommand
         .setName('reset')
-        .setDescription('Reset a user\'s crafting state.')
+        .setDescription('Reset a user\'s forging state.')
         .addUserOption(option => option
           .setName('resident')
           .setDescription('The station resident to to reset.')
