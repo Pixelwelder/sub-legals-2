@@ -5,6 +5,7 @@ const { capitalize } = require('@pixelwelders/tlh-universe-util');
 const { MessageEmbed } = require('discord.js');
 const Fuse = require('fuse.js');
 const { getClient } = require('../client');
+const getStatFields = require('../../utils/getStatFields');
 
 const imageRoot = 'http://storage.googleapis.com/species-registry.appspot.com/images/inventory/icon';
 const defaultImage = 'parts_01.png';
@@ -93,20 +94,24 @@ const showItem = async (interaction, { ephemeral = false, verbose = false } = {}
 
   // Check for data.
   const { data = {} } = item;
-  const { stats = {} } = data;
-  const statFields = Object.entries(stats).map(([key, value]) => {
-    console.log('stat', key, value);
-    return { name: capitalize(key), value: value.toString() };
-  });
+  const { stats, statModifiers } = data;
+  
+  if (statModifiers) {
+    const statString = Object.entries(statModifiers).reduce((acc, [_name, _value], index) => {
+      const name = capitalize(_name);
+      const value = _value > 1 ? `+${_value}` : _value;
+      const string = `${value} ${name}`;
+      return acc ? `${acc}, ${string}` : string;
+    }, '');
+    // if (statFields.length > 0) embed.addFields(statFields);
+    description = `${description}\n\n${statString}`;
+  }
 
-  const statString = Object.entries(stats).reduce((acc, [_name, _value], index) => {
-    const name = capitalize(_name);
-    const value = _value > 1 ? `+${_value}` : _value;
-    const string = `${value} ${name}`;
-    return acc ? `${acc}, ${string}` : string;
-  }, '');
-  // if (statFields.length > 0) embed.addFields(statFields);
-  description = `${description}\n\n${statString}`;
+  if (stats) {
+    const fields = getStatFields(stats);
+    console.log('FIELDS', fields);
+    embed.addFields(fields);
+  }
 
   if (description) embed.setDescription(description);
   if (!image) image = getImage(item, 'x1Url');

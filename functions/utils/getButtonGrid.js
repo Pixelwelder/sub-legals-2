@@ -1,4 +1,5 @@
 const { MessageActionRow, MessageButton } = require('discord.js');
+const getSummaryString = require('../adventure-drone/slash-commands-experimental/forge/getSummaryString');
 const wrapArray = require('./wrapArray');
 
 /**
@@ -31,9 +32,12 @@ const getButtonGrid = ({ items, backId, page, name, selectedUid }) => {
     items2D.forEach((row) => {
       const actionRow = new MessageActionRow();
       const buttons = row.map(item => {
+        console.log('ITEM', item);
+        let label = item.displayName;
+        if (item?.data?.statModifiers) label = `${label} ${getSummaryString(item.data.statModifiers)}`;
         return new MessageButton()
           .setCustomId(`${name}-${item.uid}`)
-          .setLabel(item.displayName)
+          .setLabel(label)
           .setStyle(selectedUid && item.uid === selectedUid ? 'SUCCESS' : 'SECONDARY');
       });
       actionRow.addComponents(buttons);

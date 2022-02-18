@@ -1,5 +1,6 @@
 const { MessageEmbed } = require("discord.js");
 const { getBar, fullPoint, emptyPoint } = require("./getBar");
+const getStatFields = require('./getStatFields');
 
 const getCharacterEmbed = (user, { character, statChanges = [0, 0, 0, 0, 0, 0, 0] } = {}) => {
   const showStats = true;
@@ -16,14 +17,7 @@ const getCharacterEmbed = (user, { character, statChanges = [0, 0, 0, 0, 0, 0, 0
     .setImage(avatarUrl);
 
   if (showStats) {
-    const fields = character.stats.map((stat, index) => {
-      let value = getBar(stat.value, stat.max);
-      if (statChanges && statChanges[index]) {
-        value = `${value} ${fullPoint.repeat(statChanges[index])}`;
-      }
-
-      return { name: stat.displayName, value, inline };
-    });
+    const fields = getStatFields(character.stats, statChanges);
 
     if (character.statPoints > 0) {
       // Add all stat changes

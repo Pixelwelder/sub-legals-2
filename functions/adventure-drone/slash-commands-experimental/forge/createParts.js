@@ -19,7 +19,7 @@ function DronePart(overrides) {
     description: 'A drone part.',
     image: `parts_${Math.floor(Math.random() * 45)}.png`,
     data: {
-      stats: {
+      statModifiers: {
         // luck: -1
       },
       ...overrides.data
@@ -41,12 +41,10 @@ const createParts = async (interaction, { adminId = '685513488411525164' } = {})
   // Create a bunch of parts in firestore and give them all to USKillbotics (685513488411525164).
   [ItemTypes.CHASSIS, ItemTypes.CORE, ItemTypes.SENSOR, ItemTypes.DRIVETRAIN, ItemTypes.TOOL, ItemTypes.WEAPON]
     .forEach(async type => {
-      const statNames = ['strength', 'perception', 'endurance', 'charisma', 'intelligence', 'agility', 'luck'];
-      // Go through it a few times.
       const possibilities = StatsByType[type];
-      const stats = possibilities.reduce((acc, stat) => {
+      const statModifiers = possibilities.reduce((acc, stat) => {
         const value = Math.floor(Math.random() * 4) - 1;
-        if (value) acc[stat] = value;
+        return value ? { ...acc, [stat]: value } : acc;
       }, {});
 
       const doc = getFirestore().collection('discord_inventory').doc();
@@ -57,7 +55,7 @@ const createParts = async (interaction, { adminId = '685513488411525164' } = {})
         displayName: `${capitalize(type)} ${Math.floor(Math.random() * 100)}`,
         description: 'Looks pretty beat up.',
         image: `parts_${Math.floor(Math.random() * 45)}.png`,
-        data: { stats }
+        data: { statModifiers }
       });
       await doc.set(item);
     });

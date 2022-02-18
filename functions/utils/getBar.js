@@ -5,7 +5,9 @@ const emptyPoint = '⚫';
 
 // Converts a number and a max to a bar made of emojis.
 // The bar has max number of segments.
-const getBar = (num = 0, max = 0, full = fullSquare, empty = emptySquare) => {
+const getBar = (_num = 0, _max = 0, full = fullSquare, empty = emptySquare) => {
+  const num = Math.max(_num, 0);
+  const max = Math.max(_max, 0);
   try {
     return `${full.repeat(num)}${empty.repeat(max - num)}`;
   } catch (error) {

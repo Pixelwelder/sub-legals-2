@@ -3,6 +3,7 @@ const { getFirestore } = require('firebase-admin/firestore');
 const Thread = require('../data/Thread');
 const ConstructionProject = require('../data/ConstructionProject');
 const { PersonalInventoryItem } = require('@pixelwelders/tlh-universe-data');
+const { Stats } = require('@pixelwelders/tlh-universe-data');
 
 const initialState = {
   /*
@@ -96,10 +97,24 @@ const resetUser = createAsyncThunk(`${name}/resetUser`, async ({ userId }, { dis
   }
 });
 
+// TODO Move.
+const StatIndexes = {
+  'strength': 0,
+  'perception': 1,
+  'endurance': 2,
+  'charisma': 3,
+  'intelligence': 4,
+  'agility': 5,
+  'luck': 6
+};
+
 const forge = createAsyncThunk(`${name}/forge`, async ({ userId, data }, { dispatch, getState }) => {
   console.log('--- forging ---');
   const { thread, inventory } = getState().craft[userId];
   const { constructionProject } = thread.data;
+
+  // TODO This needs to be in a selector somehow.
+  const inventoryByUid = inventory.reduce((acc, item) => ({ ...acc, [item.uid]: item }), {});
   
   console.log('found construction project', constructionProject);
   // Create the new item.
@@ -108,6 +123,31 @@ const forge = createAsyncThunk(`${name}/forge`, async ({ userId, data }, { dispa
   console.log('found schematic', schematic);
 
   // Create the new item.
+  // Get the stats.
+  const stats = constructionProject.partUids
+    .map(partUid => inventoryByUid[partUid])
+    .reduce((statsArr, item) => {
+      const { data = {} } = item;
+      const { statModifiers = {} } = data;
+      if (statModifiers) {
+        const temp = [0, 0, 0, 0, 0, 0, 0]; // TODO Assumes SPECIAL.
+        Object.entries(statModifiers).forEach(([statName, statValue]) => {
+          const index = StatIndexes[statName];
+          temp[index] += statValue;
+        });
+
+        console.log('temp', temp);
+        temp.forEach((value, index) => {
+          const stat = statsArr[index];
+          stat.value = Math.max(0, value);
+        });
+        console.log('stats', statsArr);
+      }
+      return statsArr;
+    }, new Stats());
+
+  console.log('found stats', stats);
+  
   // Create a Firestore transaction.
   const result = await getFirestore().runTransaction(async (transaction) => {
     console.log('running transaction');
@@ -117,7 +157,8 @@ const forge = createAsyncThunk(`${name}/forge`, async ({ userId, data }, { dispa
         uid: docRef.id,
         ...schematic.data.output,
         data: {
-          schematic
+          schematic,
+          stats
         },
         player: userId
       });

@@ -45,7 +45,11 @@ const respond = async (interaction) => {
 
     // Grab ID, then blank buttons to avoid bug.
     const { customId } = i.component;
-    await i.update({ components: [] });
+    try {
+      await i.update({ components: [] });
+    } catch (error) {
+      console.log('-------------------------', error);
+    }
     
     console.log('button', customId);
     if (customId.startsWith('goto-')) {
@@ -96,8 +100,8 @@ const respond = async (interaction) => {
 
     } else if (customId === 'forge') {
       console.log('forging');
-      const { payload } = await dispatch(craftActions.forge({ userId }));
-      console.log('forge payload', payload);
+      const { payload = {}, error } = await dispatch(craftActions.forge({ userId }));
+      console.log('forge payload', payload, error);
 
       if (payload.success) {
         // Show the new item.
