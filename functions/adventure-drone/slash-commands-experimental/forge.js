@@ -1,37 +1,16 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { MessageButton, MessageActionRow, MessageEmbed } = require('discord.js');
-const { getFirestore } = require('firebase-admin/firestore');
-const { getStorage } = require('firebase-admin/storage');
-const { getClient } = require('../client');
-const wrapArray = require('../../utils/wrapArray');
-const { PersonalInventoryItem } = require('@pixelwelders/tlh-universe-data');
 const store = require('../store');
 const { selectors: craftSelectors, actions: craftActions } = require('../store/craft');
 const DialogIds = require('../data/DialogIds');
-const ItemTypes = require('../data/ItemTypes');
-const DroneSchematic = require('../data/DroneSchematic');
-const ConstructionProject = require('../data/ConstructionProject');
-const capitalize = require('../../utils/capitalize');
-const pluralize = require('../../utils/pluralize');
 const createParts = require('./forge/createParts');
-const sortByType = require('../../utils/sortByType');
 const Thread = require('../data/Thread');
-const getButtonGrid = require('../../utils/getButtonGrid');
 const getMainMenuEmbed = require('./forge/getMainMenuEmbed');
 const getSchematicEmbed = require('./forge/getSchematicEmbed');
-const getImage = require('./forge/getImage');
 const getAbort = require('./forge/getAbort');
 const getListEmbed = require('./forge/getListEmbed');
 const getExamineEmbed = require('./forge/getExamineEmbed');
 
 const { dispatch } = store;
-// -----------------------------------------------------------------------------
-
-
-
-
-// -----------------------------------------------------------------------------
-
 
 const getResponse = (userId) => {
   const { thread } = craftSelectors.select(store.getState())[userId];
