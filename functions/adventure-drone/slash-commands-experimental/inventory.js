@@ -141,26 +141,34 @@ const showItem = async (interaction, { ephemeral = false, verbose = false } = {}
  * @returns 
  */
 const getResponse = async (userId) => {
-  const thread = getSelectors(userId).selectThread(store.getState());
-  console.log('THREAD', thread);
+  // Thread should be current, but we load inventory.
+  await store.dispatch(inventoryActions.loadData({ userId, toLoad: ['inventory'] }));
 
-  return { content: '...' };
+  const thread = getSelectors(userId).selectThread(store.getState());
+  const getEmbed = {
+    [DialogIds.EXAMINE]: getItemEmbed
+  }[thread.dialogId];
+
+  if (getEmbed) {
+    const result = await getEmbed(userId);
+    return result;
+  }
+
+  return { content: `No response for ${thread.dialogId}.` };
 };
 
 /**
- * Always responds to the information in Redux.
+ * Responds to the thread currently in Redux.
  *
  * @param {Interaction} interaction 
  */
 const respond = async (interaction) => {
   const userId = interaction.member.id;
+  console.log('respond');
 
   // Defer reply.
   // TODO We need a good way to determine ephemeral.
   await interaction.deferReply({ ephemeral: true });
-
-  // Load items and thread.
-  await store.dispatch(inventoryActions.loadData({ userId }));
 
   // Get response.
   const response = await getResponse(userId);
@@ -248,11 +256,11 @@ module.exports = {
 
       'examine': async () => {
         // Save location in thread.
-        console.log('examine');
-        await store.dispatch(inventoryActions.saveThread({ userId, dialogId: DialogIds.EXAMINE }));
+        await store.dispatch(inventoryActions.saveThread({
+          userId, dialogId: DialogIds.EXAMINE, data: { searchString: interaction.options.getString('item') }
+        }));
 
         // Get response.
-        console.log('getting response');
         respond(interaction);
       },
 

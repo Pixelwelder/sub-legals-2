@@ -15,7 +15,7 @@
   "dependencies": {
     "@discordjs/builders": "^0.6.0",
     "@discordjs/rest": "0.1.0-canary.0",
-    "@pixelwelders/tlh-universe-data": "^12.0.0",
+    "@pixelwelders/tlh-universe-data": "^12.1.2",
     "@pixelwelders/tlh-universe-util": "^4.2.1",
     "@reduxjs/toolkit": "^1.7.2",
     "bad-words": "^3.0.4",

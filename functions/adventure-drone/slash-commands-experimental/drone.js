@@ -1,5 +1,5 @@
-const { SlashCommandBuilder } = require("@discordjs/builders");
-const { getClient } = require("../client");
+const { SlashCommandBuilder } = require('@discordjs/builders');
+const { getClient } = require('../client');
 
 const Channels = {
   'station-commons': '860225881083871322',

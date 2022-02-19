@@ -15,9 +15,9 @@ const initialState = {
 /**
  * Must be run as the first action of any other async thunks.
  */
-const loadData = createAsyncThunk(`${name}/loadData`, async ({ userId, toLoad = { thread: true, inventory: true } }, { dispatch }) => {
+const loadData = createAsyncThunk(`${name}/loadData`, async ({ userId, toLoad = ['thread', 'inventory'] }, { dispatch }) => {
   // Load thread, or create one if we don't have one.
-  if (toLoad.thread) {
+  if (toLoad.includes('thread')) {
     const threadDoc = await getFirestore().collection('discord_ui').doc('inventory').collection('in-flight').doc(userId).get();
     let thread = new Thread();
     if (threadDoc.exists) {
@@ -30,7 +30,7 @@ const loadData = createAsyncThunk(`${name}/loadData`, async ({ userId, toLoad = 
     dispatch(generatedActions.setThread({ userId, thread }));
   }
 
-  if (toLoad.inventory) {
+  if (toLoad.includes('inventory')) {
     const inventoryDocs = await getFirestore().collection('discord_inventory').where('player', '==', userId).get();
     const inventory = inventoryDocs.docs.length ? inventoryDocs.docs.map(doc => doc.data()) : [];
     dispatch(generatedActions.setInventory({ userId, inventory }));
@@ -38,14 +38,12 @@ const loadData = createAsyncThunk(`${name}/loadData`, async ({ userId, toLoad = 
 });
 
 const saveThread = createAsyncThunk(`${name}/saveThread`, async ({ userId, dialogId, data, mergeData = true }, { dispatch, getState }) => {
-  await dispatch(loadData({ userId, toLoad: { thread: true } }));
+  await dispatch(loadData({ userId, toLoad: ['thread'] }));
 
   const currentThread = getSelectors(userId).selectThread(getState());
-  console.log('currentThread', currentThread);
   const newThread = { ...currentThread, updated: new Date().getTime() };
   if (dialogId) newThread.dialogId = dialogId;
   if (data) newThread.data = mergeData ? { ...currentThread.data, ...data } : data;
-  console.log('newThread', newThread);
 
   await getFirestore().collection('discord_ui').doc('inventory').collection('in-flight').doc(userId).set(newThread);
   dispatch(generatedActions.setThread({ userId, thread: newThread }));
