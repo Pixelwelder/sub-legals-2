@@ -1,7 +1,6 @@
 const { createSlice, createAsyncThunk } = require('@reduxjs/toolkit');
 const { getFirestore } = require('firebase-admin/firestore');
 const Thread = require('../data/Thread');
-const ConstructionProject = require('../data/ConstructionProject');
 const { PersonalInventoryItem } = require('@pixelwelders/tlh-universe-data');
 const { Stats } = require('@pixelwelders/tlh-universe-data');
 
