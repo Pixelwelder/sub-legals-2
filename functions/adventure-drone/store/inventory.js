@@ -12,12 +12,12 @@ const initialState = {
 */
 };
 
-const loadData = createAsyncThunk(name, async ({ userId }, { dispatch }) => {
-  // Each user gets their own set of selectors.
-  if (!selectors[userId]) createSelectors(userId);
-
+/**
+ * Must be run as the first action of any other async thunks.
+ */
+const loadData = createAsyncThunk(`${name}/loadData`, async ({ userId, toLoad = { thread: true, inventory: true } }, { dispatch }) => {
   // Load thread, or create one if we don't have one.
-  try {
+  if (toLoad.thread) {
     const threadDoc = await getFirestore().collection('discord_ui').doc('inventory').collection('in-flight').doc(userId).get();
     let thread = new Thread();
     if (threadDoc.exists) {
@@ -28,23 +28,27 @@ const loadData = createAsyncThunk(name, async ({ userId }, { dispatch }) => {
     }
 
     dispatch(generatedActions.setThread({ userId, thread }));
-  } catch (error) {
-    console.error('inventory.loadData: problem loading threaed', error);
   }
 
-  // Now load the inventory in its own try/catch.
-  try {
+  if (toLoad.inventory) {
     const inventoryDocs = await getFirestore().collection('discord_inventory').where('player', '==', userId).get();
     const inventory = inventoryDocs.docs.length ? inventoryDocs.docs.map(doc => doc.data()) : [];
     dispatch(generatedActions.setInventory({ userId, inventory }));
-  } catch (error) {
-    console.error('inventory.loadData: problem loading inventory', error);
   }
 });
 
-const setThread = createAsyncThunk(name, async ({ userId, thread }, { dispatch }) => {
-  await getFirestore().collection('discord_ui').doc('inventory').collection('in-flight').doc(userId).set(thread);
-  dispatch(generatedActions.setThread({ userId, thread }));
+const saveThread = createAsyncThunk(`${name}/saveThread`, async ({ userId, dialogId, data, mergeData = true }, { dispatch, getState }) => {
+  await dispatch(loadData({ userId, toLoad: { thread: true } }));
+
+  const currentThread = getSelectors(userId).selectThread(getState());
+  console.log('currentThread', currentThread);
+  const newThread = { ...currentThread, updated: new Date().getTime() };
+  if (dialogId) newThread.dialogId = dialogId;
+  if (data) newThread.data = mergeData ? { ...currentThread.data, ...data } : data;
+  console.log('newThread', newThread);
+
+  await getFirestore().collection('discord_ui').doc('inventory').collection('in-flight').doc(userId).set(newThread);
+  dispatch(generatedActions.setThread({ userId, thread: newThread }));
 });
 
 const { reducer, actions: generatedActions } = createSlice({
@@ -64,7 +68,7 @@ const { reducer, actions: generatedActions } = createSlice({
   }
 });
 
-const actions = { loadData, setThread };
+const actions = { loadData, saveThread };
 
 // Each user gets their own set of selectors, keyed by userId.
 const selectors = {};
@@ -80,6 +84,9 @@ const createSelectors = (userId) => {
   selectors[userId] = { select, selectInventory, selectInventoryByUid, selectThread };
 }
 
-const getSelectors = userId => selectors[userId] || {};
+const getSelectors = userId => {
+  if (!selectors[userId]) createSelectors(userId);
+  return selectors[userId];
+}
 
 module.exports = { actions, getSelectors, reducer };
