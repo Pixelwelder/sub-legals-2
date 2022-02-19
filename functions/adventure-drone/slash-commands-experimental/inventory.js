@@ -137,10 +137,12 @@ const showItem = async (interaction, { ephemeral = false, verbose = false } = {}
 /**
  * Always returns the complete response to deliver to Discord, e.g. { content, embeds, components }.
  *
- * @param {string} userId 
+ * @param {Interaction} interaction
  * @returns 
  */
-const getResponse = async (userId) => {
+const getResponse = async (interaction) => {
+  const userId = interaction.member.id;
+
   // Thread should be current, but we load inventory.
   await store.dispatch(inventoryActions.loadData({ userId, toLoad: ['inventory'] }));
 
@@ -150,7 +152,7 @@ const getResponse = async (userId) => {
   }[thread.dialogId];
 
   if (getEmbed) {
-    const result = await getEmbed(userId);
+    const result = await getEmbed(interaction);
     return result;
   }
 
@@ -163,24 +165,9 @@ const getResponse = async (userId) => {
  * @param {Interaction} interaction 
  */
 const respond = async (interaction) => {
-  const userId = interaction.member.id;
-  console.log('respond');
-
-  // Defer reply.
-  // TODO We need a good way to determine ephemeral.
   await interaction.deferReply({ ephemeral: true });
-
-  // Get response.
-  const response = await getResponse(userId);
+  const response = await getResponse(interaction);
   await interaction.editReply(response);
-
-  // ---------------------------------------------------- LISTENERS ----------------------------------------------------
-  // Listen for user interaction.
-  // const responseFactories = {
-
-  // };
-
-  // const responder = 
 };
 
 module.exports = {
@@ -257,7 +244,7 @@ module.exports = {
       'examine': async () => {
         // Save location in thread.
         await store.dispatch(inventoryActions.saveThread({
-          userId, dialogId: DialogIds.EXAMINE, data: { searchString: interaction.options.getString('item') }
+          userId, dialogId: DialogIds.EXAMINE, data: { searchString: interaction.options.getString('item'), ephemeral: true }
         }));
 
         // Get response.
@@ -265,7 +252,13 @@ module.exports = {
       },
 
       'show': async () => {
-        await showItem(interaction, { verbose: false, ephemeral: false });
+        // Save location in thread.
+        await store.dispatch(inventoryActions.saveThread({
+          userId, dialogId: DialogIds.EXAMINE, data: { searchString: interaction.options.getString('item'), ephemeral: false }
+        }));
+
+        // Get response.
+        respond(interaction);
       },
 
       // Give the inventory item to another user.

@@ -12,6 +12,8 @@ const give = createAsyncThunk(`${name}/give`, async ({ ConstructorName, userId }
   const doc = getFirestore().collection('discord_inventory').doc();
   const item = new Constructor({ uid: doc.id, player: userId });
   await getFirestore().collection('discord_inventory').doc(doc.id).set(item);
+
+  console.log('GAVE', item);
 });
 
 const { reducer, generatedActions } = createSlice({

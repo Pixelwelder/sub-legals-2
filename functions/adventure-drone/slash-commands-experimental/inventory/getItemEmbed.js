@@ -1,21 +1,17 @@
 const getItems = require('./getItems');
 const store = require('../../store');
 const { actions: inventoryActions, getSelectors } = require('../../store/inventory');
-const { MessageEmbed } = require('discord.js');
+const { MessageEmbed, MessageActionRow, MessageButton } = require('discord.js');
 const { capitalize } = require('@pixelwelders/tlh-universe-util');
 const getStatFields = require('../../../utils/getStatFields');
+const getStatModifiers = require('../../../utils/getStatModifiers');
+const ItemTypes = require('../../data/ItemTypes');
 
 const imageRoot = 'http://storage.googleapis.com/species-registry.appspot.com/images/inventory/icon';
 
-const getStatModifiers = (statModifiers) => {
-  const statString = Object.entries(statModifiers).reduce((acc, [_name, _value], index) => {
-    const name = capitalize(_name);
-    const value = _value > 1 ? `+${_value}` : _value;
-    const string = `${value} ${name}`;
-    return acc ? `${acc}, ${string}` : string;
-  }, '');
-
-  return statString;
+const ButtonIds = {
+  EXPLORE: 'explore',
+  DISASSEMBLE: 'disassemble'
 };
 
 const getDescription = (item) => {
@@ -25,8 +21,19 @@ const getDescription = (item) => {
   return description;
 };
 
-const getItemEmbed = async (userId) => {
-  const { data: { searchString = '' } } = getSelectors(userId).selectThread(store.getState());
+const getImage = (item, { ephemeral = true } = {}) => {
+  let image = item.image || 'parts_14.png';
+  // If ephemeral, override with the inner image.
+  if (ephemeral) {
+    if (item.data.image) image = item.data.image;
+  }
+  
+  return `${imageRoot}/${image}`;
+};
+
+const getItemEmbed = async (interaction) => {
+  const userId = interaction.member.id;
+  const { data: { searchString = '', ephemeral } } = getSelectors(userId).selectThread(store.getState());
   const items = getItems({ userId, searchString });
 
   if (items.length === 0) {
@@ -43,18 +50,72 @@ const getItemEmbed = async (userId) => {
     data: { stats, statModifiers, fields }
   } = item;
 
+  const isOwned = item.player === userId;
   const embed = new MessageEmbed()
     .setColor('0x000000')
     .setTitle(displayName.toUpperCase());
 
   if (fields) embed.addFields(fields);
   if (stats) embed.addFields(getStatFields(stats));
-  if (image) embed.setImage(`${imageRoot}/${image}`);
   embed.setDescription(getDescription(item));
+  embed.setImage(getImage(item, { ephemeral }));
   
-  
-  
-  return { embeds: [embed] };
+  const components = [];
+  if (ephemeral) {
+    if (isOwned) {
+      // Private owner controls
+      const actionRow = new MessageActionRow();
+      actionRow.addComponents(
+        new MessageButton()
+          .setCustomId(ButtonIds.EXPLORE)
+          .setLabel('Explore')
+          .setStyle('PRIMARY'),
+        new MessageButton()
+          .setCustomId(ButtonIds.DISASSEMBLE)
+          .setLabel('Disassemble')
+          .setStyle('DANGER')
+      );
+      components.push(actionRow);
+    } else {
+      // Private controls on others' items.
+    }
+  } else {
+    if (isOwned) {
+      // Public owner controls.
+    } else {
+      // Public controls on others' items.
+    }
+  }
+
+  // ---------------------------------------------------- HANDLERS ----------------------------------------------------
+  // We have a single exit point below, and then several more for this handler.
+  const filterButtons = i => i.user.id === userId;
+  const collector = interaction.channel.createMessageComponentCollector({ filter: filterButtons, time: 30 * 1000 });
+  collector.on('collect', async i => {
+    // Stop collecting.
+    collector.stop('manual');
+
+    // Grab ID, then blank buttons to avoid bug.
+    const { customId } = i.component;
+    await i.update({ components: [] });
+    
+    console.log('button', customId);
+    switch (customId) {
+      case ButtonIds.EXPLORE:
+        break;
+
+      case ButtonIds.DISASSEMBLE:
+        await store.dispatch(inventoryActions.disassemble({ userId, itemId: item.uid }));
+        return { content: `**${displayName}** was disassembled.`, embeds: [], components: [] };
+
+      default:
+        // TODO Fail back up the chain? Or at least do the same thing everywhere.
+        return { content: `Unknown button ${customId}.`, embeds: [], components: [] };
+    }
+  });
+
+  // ------------------------------------------------------------------------------------------------------------------
+  return { embeds: [embed], components };
 };
 
 module.exports = getItemEmbed;

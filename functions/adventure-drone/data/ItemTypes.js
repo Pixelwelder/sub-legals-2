@@ -6,7 +6,8 @@ const ItemTypes = {
   DRIVETRAIN: 'drivetrain',
   TOOL: 'tool',
   WEAPON: 'weapon',
-  MINION: 'minion'
+  MINION: 'minion',
+  INFO: 'info'
 };
 
 module.exports = ItemTypes;

@@ -1,6 +1,7 @@
-const { createAsyncThunk, createSelector, createSlice } = require("@reduxjs/toolkit");
-const { getFirestore } = require("firebase-admin/firestore");
-const Thread = require("../data/Thread");
+const { createAsyncThunk, createSelector, createSlice } = require('@reduxjs/toolkit');
+const { getFirestore } = require('firebase-admin/firestore');
+const Thread = require('../data/Thread');
+const Schematic = require('../data/Schematic');
 
 const name = 'inventory';
 const initialState = {
@@ -49,6 +50,42 @@ const saveThread = createAsyncThunk(`${name}/saveThread`, async ({ userId, dialo
   dispatch(generatedActions.setThread({ userId, thread: newThread }));
 });
 
+const disassemble = createAsyncThunk(`${name}/disassemble`, async ({ userId, itemId }, { dispatch, getState }) => {
+  console.log('disassemble', itemId);
+  // Refresh inventory.
+  await dispatch(loadData({ userId, toLoad: ['inventory'] }));
+
+  // Get the item in question.
+  const selectors = getSelectors(userId);
+  const inventoryByUid = getSelectors(userId).selectInventoryByUid(getState());
+  const item = inventoryByUid[itemId];
+  console.log('item', item);
+
+  // Create a firestore transaction, NOT a batch.
+  const transaction = getFirestore().runTransaction(async (transaction) => {
+    // Create a new schematic from the schematic data stored on the item.
+    const { data: { schematic: schematicData } } = item;
+    console.log('schematicData', schematicData);
+
+    const doc = getFirestore().collection('discord_inventory').doc();
+    const schematic = new Schematic({
+      ...schematicData,
+      uid: doc.id,
+      player: userId
+    });
+    console.log('schematic', schematic);
+
+    // Add the schematic to the inventory.
+    transaction.set(doc, schematic);
+
+    // Remove the item from the inventory.
+    const oldRef = getFirestore().collection('discord_inventory').doc(itemId);
+    transaction.delete(oldRef);
+  });
+
+  console.log('disassembly complete');
+});
+
 const { reducer, actions: generatedActions } = createSlice({
   name,
   initialState,
@@ -66,7 +103,7 @@ const { reducer, actions: generatedActions } = createSlice({
   }
 });
 
-const actions = { loadData, saveThread };
+const actions = { loadData, saveThread, disassemble };
 
 // Each user gets their own set of selectors, keyed by userId.
 const selectors = {};
