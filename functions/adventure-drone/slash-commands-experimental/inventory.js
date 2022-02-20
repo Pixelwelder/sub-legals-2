@@ -1,52 +1,14 @@
-const { getFirestore } = require('firebase-admin/firestore');
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { capitalize } = require('@pixelwelders/tlh-universe-util');
 const { MessageEmbed, MessageActionRow, MessageButton, CommandInteractionOptionResolver } = require('discord.js');
 const Fuse = require('fuse.js');
-const { getClient } = require('../client');
-const getStatFields = require('../../utils/getStatFields');
 const oxfordComma = require('../../utils/oxfordComma');
 const { actions: inventoryActions, getSelectors } = require('../store/inventory');
 const store = require('../store');
 const ItemTypes = require('../data/ItemTypes');
 const getItemEmbed = require('./inventory/getItemEmbed');
 const getGiveItemEmbed = require('./inventory/getGiveItemEmbed');
+const getListEmbed = require('./inventory/getListEmbed');
 const DialogIds = require('./inventory/DialogIds');
-const getItems = require('./inventory/getItems');
-
-const getItem = async (interaction) => {
-  // Refresh this user's items.
-  const userId = interaction.member.id;
-  await store.dispatch(inventoryActions.loadData({ userId }));
-  const items = getSelectors(userId).selectInventory(store.getState());
-
-  // Get the item.
-  // The user may search by name or index.
-  const item = interaction.options.getString('item');
-  const number = parseInt(item);
-  const result = [];
-  if (isNaN(number)) {
-    // it's a name.
-    const fuse = new Fuse(items, { ignoreLocation: true, includeScore: true, threshold: 0.2, keys: ['displayName'] });
-    result.push(...fuse.search(item));
-  } else {
-    // it's an index.
-    const index = number - 1;
-    if (items.length > index) result.push({ item: items[index] });
-  }
-
-  if (result.length === 0) {
-    interaction.editReply(`You don't have an item called "${item}".`);
-    return null;
-  } else if (result.length > 1) {
-    interaction.editReply(
-      `Can you be more specific or use a number? That could describe ${oxfordComma(result.map(({ item }) => `**${item.displayName}**`), 'or')}.`
-    );
-    return null;
-  }
-
-  return result[0].item;
-};
 
 /**
  * Always returns the complete response to deliver to Discord, e.g. { content, embeds, components }.
@@ -63,7 +25,8 @@ const getResponse = async (interaction) => {
   const thread = getSelectors(userId).selectThread(store.getState());
   const getEmbed = {
     [DialogIds.EXAMINE]: getItemEmbed,
-    [DialogIds.GIVE]: getGiveItemEmbed
+    [DialogIds.GIVE]: getGiveItemEmbed,
+    [DialogIds.LIST]: getListEmbed
   }[thread.dialogId];
 
   if (getEmbed) {
@@ -126,33 +89,11 @@ module.exports = {
     const userId = interaction.member.id;
     const command = {
       'list': async () => {
-        await interaction.deferReply({ ephemeral: true });
-        await store.dispatch(inventoryActions.loadData({ userId }));
-        const items = getSelectors(userId).selectInventory(store.getState());
-
-        // Refresh user items.
-        // await refreshUserItems(interaction.member.id);
-        // const items = itemsByOwner[interaction.member.id];
-
-        const embed = new MessageEmbed()
-          .setColor('0x000000')
-          .setTitle(`${interaction.user.username}'s Inventory`);
-
-        const fields = items.map((item, index) => {
-          return {
-            name: `**${index + 1}** | ${item.displayName || 'Item'} ${item.type ? '\`' + item.type.toUpperCase() + '\`' : ''}`,
-            value: `${item.description || 'An interesting item.'}`
-          };
-        });
-
-        if (fields.length) {
-          embed.addFields(fields);
-          embed.setDescription('You can use `/inventory examine <item name or number>` to examine an item.');
-        } else {
-          embed.setDescription('You don\'t have any items.');
-        }
-
-        await interaction.editReply({ embeds: [embed] });
+        console.log('list');
+        await store.dispatch(inventoryActions.saveThread({
+          userId, dialogId: DialogIds.LIST, data: { ephemeral: true }
+        }));
+        respond(interaction);
       },
 
       'examine': async () => {
@@ -186,27 +127,6 @@ module.exports = {
         }));
 
         respond(interaction);
-        return;
-
-        
-        const item = await getItem(interaction);
-        if (!item) return; // We're done.
-
-        // Get the target user.
-        const { id } = interaction.options.getUser('resident');
-
-        // Make the transfer.
-        await getFirestore().collection('discord_inventory').doc(item.uid).update({ player: id });
-
-        // Announce the transfer.
-        // TODO This should be private to both parties... somehow. Maybe a DM for the recipient?
-        interaction.editReply(`You gave <@${id}> ${item.displayName || 'an item'}.`);
-        interaction.channel.send(`<@${id}> has received <@${interaction.user.id}>'s ${item.displayName || 'item'}!`, { ephemeral: false });
-
-        // Is it this bot?
-        if (id === getClient().user.id) {
-          // TODO
-        }
       }
     }[interaction.options.getSubcommand()];
 

@@ -90,10 +90,14 @@ const disassemble = createAsyncThunk(`${name}/disassemble`, async ({ userId, ite
 const give = createAsyncThunk(`${name}/give`, async ({ userId, itemUid, residentId }, { dispatch, getState }) => {
   // await dispatch(loadData({ userId, toLoad: ['inventory'] }));
   console.log('giving', itemUid, residentId);
+
+  // if (id === getClient().user.id) {
+  //   // TODO
+  // }
   try {
     await getFirestore().collection('discord_inventory').doc(itemUid).update({ player: residentId });
-    return { success: true };
     console.log('gave', itemUid, residentId);
+    return { success: true };
   } catch (e) {
     console.error(e);
   }

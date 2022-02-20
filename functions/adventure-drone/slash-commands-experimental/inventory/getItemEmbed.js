@@ -2,7 +2,6 @@ const getItems = require('./getItems');
 const store = require('../../store');
 const { actions: inventoryActions, getSelectors } = require('../../store/inventory');
 const { MessageEmbed, MessageActionRow, MessageButton } = require('discord.js');
-const { capitalize } = require('@pixelwelders/tlh-universe-util');
 const getStatFields = require('../../../utils/getStatFields');
 const getStatModifiers = require('../../../utils/getStatModifiers');
 const ItemTypes = require('../../data/ItemTypes');
