@@ -5,6 +5,7 @@ const { MessageEmbed, MessageActionRow, MessageButton } = require('discord.js');
 const getStatFields = require('../../../utils/getStatFields');
 const getStatModifiers = require('../../../utils/getStatModifiers');
 const ItemTypes = require('../../data/ItemTypes');
+const oxfordComma = require('../../../utils/oxfordComma');
 
 const imageRoot = 'http://storage.googleapis.com/species-registry.appspot.com/images/inventory/icon';
 
@@ -40,7 +41,7 @@ const getItemEmbed = async (interaction) => {
     return { content: `You don't have an item called "${searchString}".`};
   } else if (items.length > 1) {
     return {
-      content: `Can you be more specific or use a number? That could describe ${oxfordComma(result.map(({ item }) => `**${item.displayName}**`), 'or')}.`
+      content: `Can you be more specific or use a number? That could describe ${oxfordComma(items.map(({ item }) => `**${item.displayName}**`), 'or')}.`
     };
   }
 
@@ -74,25 +75,26 @@ const getItemEmbed = async (interaction) => {
       //     .setStyle('SECONDARY')
       // );
 
-      if (item.type === ItemTypes.MINION) {
-        buttons.push(
-          new MessageButton()
-            .setCustomId(ButtonIds.EXPLORE)
-            .setLabel('Explore')
-            .setStyle('PRIMARY')
-        );
-      }
+      // if (item.type === ItemTypes.MINION) {
+      //   buttons.push(
+      //     new MessageButton()
+      //       .setCustomId(ButtonIds.EXPLORE)
+      //       .setLabel('Explore')
+      //       .setStyle('PRIMARY')
+      //   );
+      // }
 
-      if (item.data.schematic) {
-        buttons.push(
-          new MessageButton()
-            .setCustomId(ButtonIds.DISASSEMBLE)
-            .setLabel('Disassemble')
-            .setStyle('DANGER')
-        );
-      }
+      // if (item.data.schematic) {
+      //   buttons.push(
+      //     new MessageButton()
+      //       .setCustomId(ButtonIds.DISASSEMBLE)
+      //       .setLabel('Disassemble')
+      //       .setStyle('DANGER')
+      //   );
+      // }
 
       if (buttons.length) {
+        actionRow.addComponents(buttons);
         components.push(actionRow);
       }
     } else {
@@ -140,6 +142,7 @@ const getItemEmbed = async (interaction) => {
   });
 
   // ------------------------------------------------------------------------------------------------------------------
+  console.log('getItemEmbed: returning', components);
   return { embeds: [embed], components };
 };
 

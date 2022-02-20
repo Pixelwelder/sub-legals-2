@@ -1,8 +1,8 @@
 const DialogIds = {
-  LIST: 0,
-  EXAMINE: 1,
-  SHOW: 2,
-  GIVE: 3
+  LIST: 1,
+  EXAMINE: 2,
+  SHOW: 3,
+  GIVE: 4
 };
 
 module.exports = DialogIds;

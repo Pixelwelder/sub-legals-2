@@ -11,18 +11,21 @@ const getListEmbed = require('./inventory/getListEmbed');
 const DialogIds = require('./inventory/DialogIds');
 
 /**
- * Always returns the complete response to deliver to Discord, e.g. { content, embeds, components }.
+ * Responds to the thread currently in Redux.
  *
- * @param {Interaction} interaction
- * @returns 
+ * @param {Interaction} interaction 
  */
-const getResponse = async (interaction) => {
+const respond = async (interaction, { ephemeral = true } = {}) => {
+  await interaction.deferReply({ ephemeral });
+
   const userId = interaction.member.id;
+  const thread = getSelectors(userId).selectThread(store.getState());
+  let response = { content: `No response for ${thread.dialogId}.` };
 
   // Thread should be current, but we load inventory.
   await store.dispatch(inventoryActions.loadData({ userId, toLoad: ['inventory'] }));
-
-  const thread = getSelectors(userId).selectThread(store.getState());
+  
+  console.log('respond', thread.dialogId);
   const getEmbed = {
     [DialogIds.EXAMINE]: getItemEmbed,
     [DialogIds.GIVE]: getGiveItemEmbed,
@@ -30,21 +33,9 @@ const getResponse = async (interaction) => {
   }[thread.dialogId];
 
   if (getEmbed) {
-    const result = await getEmbed(interaction);
-    return result;
+    response = await getEmbed(interaction);
   }
 
-  return { content: `No response for ${thread.dialogId}.` };
-};
-
-/**
- * Responds to the thread currently in Redux.
- *
- * @param {Interaction} interaction 
- */
-const respond = async (interaction) => {
-  await interaction.deferReply({ ephemeral: true });
-  const response = await getResponse(interaction);
   await interaction.editReply(response);
 };
 
@@ -113,7 +104,7 @@ module.exports = {
         }));
 
         // Get response.
-        respond(interaction);
+        respond(interaction, { ephemeral: false });
       },
 
       // Give the inventory item to another user.

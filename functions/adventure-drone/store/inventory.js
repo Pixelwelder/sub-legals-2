@@ -39,7 +39,7 @@ const loadData = createAsyncThunk(`${name}/loadData`, async ({ userId, toLoad = 
   }
 });
 
-const saveThread = createAsyncThunk(`${name}/saveThread`, async ({ userId, dialogId, data, mergeData = true }, { dispatch, getState }) => {
+const saveThread = createAsyncThunk(`${name}/saveThread`, async ({ userId, dialogId, data, mergeData = false }, { dispatch, getState }) => {
   await dispatch(loadData({ userId, toLoad: ['thread'] }));
 
   const currentThread = getSelectors(userId).selectThread(getState());
