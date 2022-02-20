@@ -55,7 +55,8 @@ const getItemEmbed = async (interaction) => {
     .setColor('0x000000')
     .setTitle(displayName.toUpperCase());
 
-  if (fields) embed.addFields(fields);
+  // Fields are private.
+  if (fields && ephemeral) embed.addFields(fields);
   if (stats) embed.addFields(getStatFields(stats));
   embed.setDescription(getDescription(item));
   embed.setImage(getImage(item, { ephemeral }));

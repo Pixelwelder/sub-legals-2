@@ -2,6 +2,7 @@ const { createAsyncThunk, createSelector, createSlice } = require('@reduxjs/tool
 const { getFirestore } = require('firebase-admin/firestore');
 const Thread = require('../data/Thread');
 const Schematic = require('../data/Schematic');
+const { UsersManual } = require('@pixelwelders/tlh-universe-data');
 
 const name = 'inventory';
 const initialState = {

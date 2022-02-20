@@ -1,5 +1,4 @@
 const { getFirestore } = require('firebase-admin/firestore');
-const { getStorage } = require('firebase-admin/storage');
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { capitalize } = require('@pixelwelders/tlh-universe-util');
 const { MessageEmbed, MessageActionRow, MessageButton, CommandInteractionOptionResolver } = require('discord.js');
@@ -226,14 +225,14 @@ module.exports = {
 
         const fields = items.map((item, index) => {
           return {
-            name: `${item.displayName || 'Item'} ${item.type ? '\`' + item.type.toUpperCase() + '\`' : ''}`,
-            value: `**${index + 1}** | ${item.description || 'An interesting item.'}`
+            name: `**${index + 1}** | ${item.displayName || 'Item'} ${item.type ? '\`' + item.type.toUpperCase() + '\`' : ''}`,
+            value: `${item.description || 'An interesting item.'}`
           };
         });
 
         if (fields.length) {
           embed.addFields(fields);
-          embed.setDescription('You can use `/inventory examine <item name>` to examine an item.');
+          embed.setDescription('You can use `/inventory examine <item name or number>` to examine an item.');
         } else {
           embed.setDescription('You don\'t have any items.');
         }
