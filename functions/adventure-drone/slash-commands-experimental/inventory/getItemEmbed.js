@@ -10,6 +10,7 @@ const ItemTypes = require('../../data/ItemTypes');
 const imageRoot = 'http://storage.googleapis.com/species-registry.appspot.com/images/inventory/icon';
 
 const ButtonIds = {
+  GIVE: 'give',
   EXPLORE: 'explore',
   DISASSEMBLE: 'disassemble'
 };
@@ -66,16 +67,31 @@ const getItemEmbed = async (interaction) => {
     if (isOwned) {
       // Private owner controls
       const actionRow = new MessageActionRow();
-      actionRow.addComponents(
-        new MessageButton()
-          .setCustomId(ButtonIds.EXPLORE)
-          .setLabel('Explore')
-          .setStyle('PRIMARY'),
-        new MessageButton()
-          .setCustomId(ButtonIds.DISASSEMBLE)
-          .setLabel('Disassemble')
-          .setStyle('DANGER')
-      );
+      // actionRow.addComponents(
+      //   new MessageButton()
+      //     .setCustomId(ButtonIds.GIVE)
+      //     .setLabel('Give')
+      //     .setStyle('SECONDARY')
+      // );
+
+      if (item.type = ItemTypes.MINION) {
+        actionRow.addComponents(
+          new MessageButton()
+            .setCustomId(ButtonIds.EXPLORE)
+            .setLabel('Explore')
+            .setStyle('PRIMARY')
+        );
+      }
+
+      if (item.data.schematic) {
+        actionRow.addComponents(
+          new MessageButton()
+            .setCustomId(ButtonIds.DISASSEMBLE)
+            .setLabel('Disassemble')
+            .setStyle('DANGER')
+        );
+      }
+
       components.push(actionRow);
     } else {
       // Private controls on others' items.
@@ -102,6 +118,12 @@ const getItemEmbed = async (interaction) => {
     
     console.log('button', customId);
     switch (customId) {
+      case ButtonIds.GIVE:
+        interaction.editReply({
+          content: 'To give this item to another resident, use `/inventory give <item> @<Username>`.'
+        });
+        break;
+
       case ButtonIds.EXPLORE:
         break;
 

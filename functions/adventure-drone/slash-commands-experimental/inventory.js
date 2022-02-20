@@ -10,15 +10,9 @@ const { actions: inventoryActions, getSelectors } = require('../store/inventory'
 const store = require('../store');
 const ItemTypes = require('../data/ItemTypes');
 const getItemEmbed = require('./inventory/getItemEmbed');
+const getGiveItemEmbed = require('./inventory/getGiveItemEmbed');
 const DialogIds = require('./inventory/DialogIds');
-
-const imageRoot = 'http://storage.googleapis.com/species-registry.appspot.com/images/inventory/icon';
-const defaultImage = 'parts_01.png';
-const getImage = (item, paramName = 'image') => {
-  // const { image: { [paramName]: url = defaultImage } = {} } = item;
-  const { image: url = defaultImage } = item;
-  return `${imageRoot}/${url}`;
-}
+const getItems = require('./inventory/getItems');
 
 const getItem = async (interaction) => {
   // Refresh this user's items.
@@ -54,85 +48,6 @@ const getItem = async (interaction) => {
   return result[0].item;
 };
 
-const getMinionEmbed = async (interaction, { ephemeral = false, verbose = false } = {}) => {
-
-};
-
-// Return a single item to Discord.
-const showItem = async (interaction, { ephemeral = false, verbose = false } = {}) => {
-  // Defer the reply, just in case.
-  await interaction.deferReply({ ephemeral });
-
-  const userId = interaction.member.id;
-  const item = await getItem(interaction);
-  if (!item) return; // We're done.
-
-  let title = item.displayName;
-  if (!ephemeral) title = `${title} (owned by ${interaction.user.username})`
-  const embed = new MessageEmbed()
-    .setColor('0x000000')
-    .setTitle(title)
-  const components = [];
-
-  let description;
-  let image;
-  if (verbose) {
-    // Inventory items may have a content property like so: { image: '', fields: [{ name, value }, ...] }
-    const { data = {} } = item;
-    const { fields } = data;
-    if (fields) {
-      fields.forEach(({ name, value, inline = false }) => embed.addField(name, value, inline));
-    } else {
-      description = item.description;
-    }
-    if (data.image) image = getImage({ image: data });
-
-    // The owner can do things with the item.
-    if (item.player === userId) {
-      const actionRow = new MessageActionRow();
-      
-      if (item.type == ItemTypes.MINION) {
-        actionRow.addComponents(
-          new MessageButton()
-            .setCustomId('Explore')
-            .setLabel('Explore')
-            .setStyle('PRIMARY')
-        )
-      }
-      components.push(actionRow);
-    }
-  } else {
-    description = item.description;
-  }
-
-  // Check for data.
-  const { data = {} } = item;
-  const { stats, statModifiers } = data;
-  
-  if (statModifiers) {
-    const statString = Object.entries(statModifiers).reduce((acc, [_name, _value], index) => {
-      const name = capitalize(_name);
-      const value = _value > 1 ? `+${_value}` : _value;
-      const string = `${value} ${name}`;
-      return acc ? `${acc}, ${string}` : string;
-    }, '');
-    // if (statFields.length > 0) embed.addFields(statFields);
-    description = `${description}\n\n${statString}`;
-  }
-
-  if (stats) {
-    const fields = getStatFields(stats);
-    console.log('FIELDS', fields);
-    embed.addFields(fields);
-  }
-
-  if (description) embed.setDescription(description);
-  if (!image) image = getImage(item, 'x1Url');
-  embed.setImage(image);
-
-  interaction.editReply({ embeds: [embed], components });
-};
-
 /**
  * Always returns the complete response to deliver to Discord, e.g. { content, embeds, components }.
  *
@@ -147,7 +62,8 @@ const getResponse = async (interaction) => {
 
   const thread = getSelectors(userId).selectThread(store.getState());
   const getEmbed = {
-    [DialogIds.EXAMINE]: getItemEmbed
+    [DialogIds.EXAMINE]: getItemEmbed,
+    [DialogIds.GIVE]: getGiveItemEmbed
   }[thread.dialogId];
 
   if (getEmbed) {
@@ -198,8 +114,7 @@ module.exports = {
       .addStringOption(option => option
         .setName('item')
         .setDescription('The name of the item to give.')
-        .setRequired(true)
-      )
+        .setRequired(true))
       .addUserOption(option => option
         .setName('resident')
         .setDescription('The station resident to give the item to.')
@@ -262,9 +177,18 @@ module.exports = {
 
       // Give the inventory item to another user.
       'give': async () => {
-        await interaction.deferReply({ ephemeral: true });
+        await store.dispatch(inventoryActions.saveThread({
+          userId, dialogId: DialogIds.GIVE, data: {
+            searchString: interaction.options.getString('item'),
+            resident: interaction.options.getUser('resident').id,
+            ephemeral: true
+          }
+        }));
 
-        // Get the item
+        respond(interaction);
+        return;
+
+        
         const item = await getItem(interaction);
         if (!item) return; // We're done.
 
