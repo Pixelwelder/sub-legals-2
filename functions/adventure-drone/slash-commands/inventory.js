@@ -1,123 +1,41 @@
-const { getFirestore } = require('firebase-admin/firestore');
-const { getStorage } = require('firebase-admin/storage');
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { capitalize } = require('@pixelwelders/tlh-universe-util');
-const { MessageEmbed } = require('discord.js');
+const { MessageEmbed, MessageActionRow, MessageButton, CommandInteractionOptionResolver } = require('discord.js');
 const Fuse = require('fuse.js');
-const { getClient } = require('../client');
-const getStatFields = require('../../utils/getStatFields');
+const oxfordComma = require('../../utils/oxfordComma');
+const { actions: inventoryActions, getSelectors } = require('../store/inventory');
+const store = require('../store');
+const ItemTypes = require('../data/ItemTypes');
+const getItemEmbed = require('./inventory/getItemEmbed');
+const getGiveItemEmbed = require('./inventory/getGiveItemEmbed');
+const getListEmbed = require('./inventory/getListEmbed');
+const DialogIds = require('./inventory/DialogIds');
 
-const imageRoot = 'http://storage.googleapis.com/species-registry.appspot.com/images/inventory/icon';
-const defaultImage = 'parts_01.png';
-const getImage = (item, paramName = 'image') => {
-  // const { image: { [paramName]: url = defaultImage } = {} } = item;
-  console.log('getting image from', item);
-  const { image: url = defaultImage } = item;
-  return `${imageRoot}/${url}`;
-}
-
-// When we load, we grab all items from the database. This is probably not scalable.
-const itemsByOwner = {}
-const refreshUserItems = async (userId) => {
-  const items = await getFirestore().collection('discord_inventory').where('player', '==', userId).get();
-  itemsByOwner[userId] = items.docs.map(doc => doc.data());
-};
-
-// Convert an array of strings to a single string with an Oxford comma.
-const oxfordComma = (strings, conjunction = 'and') => {
-  if (strings.length === 1) return strings[0];
-  if (strings.length === 2) return `${strings[0]} ${conjunction} ${strings[1]}`;
-  return `${strings.slice(0, -1).join(', ')}, ${conjunction} ${strings[strings.length - 1]}`;
-}
-
-const getItem = async (interaction) => {
-  // Refresh this user's items.
-  await refreshUserItems(interaction.member.id);
-
-  // Get the item.
-  const itemName = interaction.options.getString('item');
-  // const item = itemsByOwner[interaction.member.id][letterToNum(itemName)];
-
-  // Use Fuse to search for the item.
-  const items = itemsByOwner[interaction.member.id];
-  const fuse = new Fuse(items, { ignoreLocation: true, includeScore: true, threshold: 0.2, keys: ['displayName'] });
-  const result = fuse.search(itemName);
-
-  if (result.length === 0) {
-    interaction.editReply(`You don't have an item called "${itemName}".`);
-    return null;
-  } else if (result.length > 1) {
-    interaction.editReply(
-      `Can you be more specific? That could describe ${oxfordComma(result.map(({ item }) => `**${item.displayName}**`), 'or')}.`
-    );
-    return null;
-  }
-
-  return result[0].item;
-};
-
-// Set up storage.
-const bucket = getStorage().bucket();
-// const file = await bucket.file('images/inventory/icon/parts_01.png').download();
-// http://storage.googleapis.com/species-registry.appspot.com/images/inventory/icon/parts_01.png
-
-// Return a single item to Discord.
-const showItem = async (interaction, { ephemeral = false, verbose = false } = {}) => {
-  // Defer the reply, just in case.
+/**
+ * Responds to the thread currently in Redux.
+ *
+ * @param {Interaction} interaction 
+ */
+const respond = async (interaction, { ephemeral = true } = {}) => {
   await interaction.deferReply({ ephemeral });
 
-  const item = await getItem(interaction);
-  if (!item) return; // We're done.
+  const userId = interaction.member.id;
+  const thread = getSelectors(userId).selectThread(store.getState());
+  let response = { content: `No response for ${thread.dialogId}.` };
 
-  // Send it.
-  let title = item.displayName;
-  if (!ephemeral) title = `${title} (owned by ${interaction.user.username})`
-  const embed = new MessageEmbed()
-    .setColor('0x000000')
-    .setTitle(title)
-
-  let description;
-  let image;
-  if (verbose) {
-    // Inventory items may have a content property like so: { image: '', fields: [{ name, value }, ...] }
-    const { data = {} } = item;
-    const { fields } = data;
-    if (fields) {
-      fields.forEach(({ name, value, inline = false }) => embed.addField(name, value, inline));
-    } else {
-      description = item.description;
-    }
-    if (data.image) image = getImage({ image: data });
-  } else {
-    description = item.description;
-  }
-
-  // Check for data.
-  const { data = {} } = item;
-  const { stats, statModifiers } = data;
+  // Thread should be current, but we load inventory.
+  await store.dispatch(inventoryActions.loadData({ userId, toLoad: ['inventory'] }));
   
-  if (statModifiers) {
-    const statString = Object.entries(statModifiers).reduce((acc, [_name, _value], index) => {
-      const name = capitalize(_name);
-      const value = _value > 1 ? `+${_value}` : _value;
-      const string = `${value} ${name}`;
-      return acc ? `${acc}, ${string}` : string;
-    }, '');
-    // if (statFields.length > 0) embed.addFields(statFields);
-    description = `${description}\n\n${statString}`;
+  const getEmbed = {
+    [DialogIds.EXAMINE]: getItemEmbed,
+    [DialogIds.GIVE]: getGiveItemEmbed,
+    [DialogIds.LIST]: getListEmbed
+  }[thread.dialogId];
+
+  if (getEmbed) {
+    response = await getEmbed(interaction);
   }
 
-  if (stats) {
-    const fields = getStatFields(stats);
-    console.log('FIELDS', fields);
-    embed.addFields(fields);
-  }
-
-  if (description) embed.setDescription(description);
-  if (!image) image = getImage(item, 'x1Url');
-  embed.setImage(image);
-
-  interaction.editReply({ embeds: [embed] });
+  await interaction.editReply(response);
 };
 
 module.exports = {
@@ -132,7 +50,7 @@ module.exports = {
       .setDescription('Examine an inventory item.')
       .addStringOption(option => option
         .setName('item')
-        .setDescription('The name of the item to examine.')
+        .setDescription('The name or number of the item to examine.')
         .setRequired(true)
       ))
     .addSubcommand(subcommand => subcommand
@@ -149,8 +67,7 @@ module.exports = {
       .addStringOption(option => option
         .setName('item')
         .setDescription('The name of the item to give.')
-        .setRequired(true)
-      )
+        .setRequired(true))
       .addUserOption(option => option
         .setName('resident')
         .setDescription('The station resident to give the item to.')
@@ -159,66 +76,47 @@ module.exports = {
     
   // TODO Don't use reply.
   async execute(interaction) {
+    const userId = interaction.member.id;
     const command = {
       'list': async () => {
-        // Defer the reply, just in case.
-        await interaction.deferReply({ ephemeral: true });
-
-        // Refresh user items.
-        await refreshUserItems(interaction.member.id);
-        const items = itemsByOwner[interaction.member.id];
-
-        const embed = new MessageEmbed()
-          .setColor('0x000000')
-          .setTitle(`${interaction.user.username}'s Inventory`);
-
-        const fields = items.map((item, index) => {
-          return {
-            name: `${item.displayName || 'Item'} ${item.type ? '\`' + item.type.toUpperCase() + '\`' : ''}`,
-            value: item.description || 'An interesting item.'
-          };
-        });
-
-        if (fields.length) {
-          embed.addFields(fields);
-          embed.setDescription('You can use `/inventory examine <item name>` to examine an item.');
-        } else {
-          embed.setDescription('You don\'t have any items.');
-        }
-
-        await interaction.editReply({ embeds: [embed] });
+        console.log('list');
+        await store.dispatch(inventoryActions.saveThread({
+          userId, dialogId: DialogIds.LIST, data: { ephemeral: true }
+        }));
+        respond(interaction);
       },
 
       'examine': async () => {
-        await showItem(interaction, { verbose: true, ephemeral: true });
+        // Save location in thread.
+        await store.dispatch(inventoryActions.saveThread({
+          userId, dialogId: DialogIds.EXAMINE, data: { searchString: interaction.options.getString('item'), ephemeral: true }
+        }));
+
+        // Get response.
+        respond(interaction);
       },
 
       'show': async () => {
-        await showItem(interaction, { verbose: false, ephemeral: false });
+        // Save location in thread.
+        await store.dispatch(inventoryActions.saveThread({
+          userId, dialogId: DialogIds.EXAMINE, data: { searchString: interaction.options.getString('item'), ephemeral: false }
+        }));
+
+        // Get response.
+        respond(interaction, { ephemeral: false });
       },
 
       // Give the inventory item to another user.
       'give': async () => {
-        await interaction.deferReply({ ephemeral: true });
+        await store.dispatch(inventoryActions.saveThread({
+          userId, dialogId: DialogIds.GIVE, data: {
+            searchString: interaction.options.getString('item'),
+            resident: interaction.options.getUser('resident').id,
+            ephemeral: true
+          }
+        }));
 
-        // Get the item
-        const item = await getItem(interaction);
-        if (!item) return; // We're done.
-
-        // Get the target user.
-        const { id } = interaction.options.getUser('resident');
-
-        // Make the transfer.
-        await getFirestore().collection('discord_inventory').doc(item.uid).update({ player: id });
-
-        // Announce the transfer.
-        interaction.editReply(`You gave <@${id}> ${item.displayName || 'an item'}.`);
-        interaction.channel.send(`<@${id}> has received <@${interaction.user.id}>'s ${item.displayName || 'item'}!`, { ephemeral: false });
-
-        // Is it this bot?
-        if (id === getClient().user.id) {
-          // TODO
-        }
+        respond(interaction);
       }
     }[interaction.options.getSubcommand()];
 

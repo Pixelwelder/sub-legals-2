@@ -41,7 +41,7 @@ const getItemEmbed = async (interaction) => {
     return { content: `You don't have an item called "${searchString}".`};
   } else if (items.length > 1) {
     return {
-      content: `Can you be more specific or use a number? That could describe ${oxfordComma(items.map(({ item }) => `**${item.displayName}**`), 'or')}.`
+      content: `Can you be more specific or use a number? That could describe ${oxfordComma(items.map((item) => `**${item.displayName}**`), 'or')}.`
     };
   }
 

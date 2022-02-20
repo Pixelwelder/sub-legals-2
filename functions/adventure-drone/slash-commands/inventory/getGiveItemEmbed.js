@@ -2,6 +2,7 @@ const getItems = require('./getItems');
 const store = require('../../store');
 const { actions: inventoryActions, getSelectors } = require('../../store/inventory');
 const { MessageEmbed, MessageActionRow, MessageButton } = require('discord.js');
+const oxfordComma = require('../../../utils/oxfordComma');
 
 const imageRoot = 'http://storage.googleapis.com/species-registry.appspot.com/images/inventory/icon';
 
@@ -18,8 +19,9 @@ const getGiveItemEmbed = async (interaction) => {
   if (items.length === 0) {
     return { content: `You don't have an item called "${searchString}".`};
   } else if (items.length > 1) {
+    console.log('???', items);
     return {
-      content: `Can you be more specific or use a number? That could describe ${oxfordComma(result.map(({ item }) => `**${item.displayName}**`), 'or')}.`
+      content: `Can you be more specific or use a number? That could describe ${oxfordComma(items.map((item) => `**${item.displayName}**`), 'or')}.`
     };
   }
 
