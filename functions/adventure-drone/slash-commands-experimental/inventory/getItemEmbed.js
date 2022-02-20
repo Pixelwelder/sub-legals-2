@@ -67,6 +67,7 @@ const getItemEmbed = async (interaction) => {
     if (isOwned) {
       // Private owner controls
       const actionRow = new MessageActionRow();
+      const buttons = [];
       // actionRow.addComponents(
       //   new MessageButton()
       //     .setCustomId(ButtonIds.GIVE)
@@ -74,8 +75,8 @@ const getItemEmbed = async (interaction) => {
       //     .setStyle('SECONDARY')
       // );
 
-      if (item.type = ItemTypes.MINION) {
-        actionRow.addComponents(
+      if (item.type === ItemTypes.MINION) {
+        buttons.push(
           new MessageButton()
             .setCustomId(ButtonIds.EXPLORE)
             .setLabel('Explore')
@@ -84,7 +85,7 @@ const getItemEmbed = async (interaction) => {
       }
 
       if (item.data.schematic) {
-        actionRow.addComponents(
+        buttons.push(
           new MessageButton()
             .setCustomId(ButtonIds.DISASSEMBLE)
             .setLabel('Disassemble')
@@ -92,7 +93,9 @@ const getItemEmbed = async (interaction) => {
         );
       }
 
-      components.push(actionRow);
+      if (buttons.length) {
+        components.push(actionRow);
+      }
     } else {
       // Private controls on others' items.
     }

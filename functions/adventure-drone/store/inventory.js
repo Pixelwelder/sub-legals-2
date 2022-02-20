@@ -62,7 +62,7 @@ const disassemble = createAsyncThunk(`${name}/disassemble`, async ({ userId, ite
   const item = inventoryByUid[itemId];
   console.log('item', item);
 
-  // Create a firestore transaction, NOT a batch.
+  // Create a firestore transaction.
   const transaction = getFirestore().runTransaction(async (transaction) => {
     // Create a new schematic from the schematic data stored on the item.
     const { data: { schematic: schematicData } } = item;
@@ -87,6 +87,18 @@ const disassemble = createAsyncThunk(`${name}/disassemble`, async ({ userId, ite
   console.log('disassembly complete');
 });
 
+const give = createAsyncThunk(`${name}/give`, async ({ userId, itemUid, residentId }, { dispatch, getState }) => {
+  // await dispatch(loadData({ userId, toLoad: ['inventory'] }));
+  console.log('giving', itemUid, residentId);
+  try {
+    await getFirestore().collection('discord_inventory').doc(itemUid).update({ player: residentId });
+    return { success: true };
+    console.log('gave', itemUid, residentId);
+  } catch (e) {
+    console.error(e);
+  }
+});
+
 const { reducer, actions: generatedActions } = createSlice({
   name,
   initialState,
@@ -104,7 +116,7 @@ const { reducer, actions: generatedActions } = createSlice({
   }
 });
 
-const actions = { loadData, saveThread, disassemble };
+const actions = { loadData, saveThread, disassemble, give };
 
 // Each user gets their own set of selectors, keyed by userId.
 const selectors = {};

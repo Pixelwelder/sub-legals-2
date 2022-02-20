@@ -2,10 +2,6 @@ const getItems = require('./getItems');
 const store = require('../../store');
 const { actions: inventoryActions, getSelectors } = require('../../store/inventory');
 const { MessageEmbed, MessageActionRow, MessageButton } = require('discord.js');
-const { capitalize } = require('@pixelwelders/tlh-universe-util');
-const getStatFields = require('../../../utils/getStatFields');
-const getStatModifiers = require('../../../utils/getStatModifiers');
-const ItemTypes = require('../../data/ItemTypes');
 
 const imageRoot = 'http://storage.googleapis.com/species-registry.appspot.com/images/inventory/icon';
 
@@ -68,12 +64,21 @@ const getGiveItemEmbed = async (interaction) => {
     console.log('button', customId);
     switch (customId) {
       case ButtonIds.GIVE:
-        interaction.editReply({
-          content: `You gave ${item.displayName} to ${guildMember.user.username}.`,
+        // Give item.
+        const { payload: { success } } = await store.dispatch(inventoryActions.give({ userId, itemUid: item.uid, residentId: guildMember.user.id }));
+        if (success) {
+          interaction.editReply({
+            content: `You gave ${item.displayName} to ${guildMember.user.username}.`,
+            embeds: [],
+            components: []
+          });
+        }
+
+        return {
+          content: `You failed to give ${item.displayName} to ${guildMember.user.username}, for some reason.`,
           embeds: [],
           components: []
-        });
-        break;
+        };
 
       case ButtonIds.CANCEL:
         interaction.editReply({
