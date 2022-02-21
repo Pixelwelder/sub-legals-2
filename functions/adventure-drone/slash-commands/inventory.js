@@ -22,6 +22,7 @@ const respond = async (interaction, { ephemeral = true } = {}) => {
   const userId = interaction.member.id;
   const thread = getSelectors(userId).selectThread(store.getState());
   let response = { content: `No response for ${thread.dialogId}.` };
+  let meta = {};
 
   // Thread should be current, but we load inventory.
   await store.dispatch(inventoryActions.loadData({ userId, toLoad: ['inventory'] }));
@@ -34,10 +35,12 @@ const respond = async (interaction, { ephemeral = true } = {}) => {
   }[thread.dialogId];
 
   if (getEmbed) {
-    response = await getEmbed(interaction);
+    const responseObj = await getEmbed(interaction);
+    ({ meta = {}, ...response } = responseObj);
+    console.log(responseObj, meta, response);
   }
 
-  if (ephemeral) {
+  if (ephemeral || !meta.success) {
     await interaction.editReply(response);
   } else {
     // Send a message to the interaction's channel.

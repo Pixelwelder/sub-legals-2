@@ -34,17 +34,21 @@ const getImage = (item, { ephemeral = true } = {}) => {
   return `${imageRoot}/${image}`;
 };
 
+const getError = (errorString, overrides = {}) => {
+  return { meta: { success: false }, content: errorString, ...overrides };
+}
+
 const getItemEmbed = async (interaction) => {
   const userId = interaction.member.id;
   const { data: { searchString = '', ephemeral } } = getSelectors(userId).selectThread(store.getState());
   const items = getItems({ userId, searchString });
 
   if (items.length === 0) {
-    return { content: `You don't have an item called "${searchString}".`};
+    return getError(`You don't have an item called "${searchString}".`);
   } else if (items.length > 1) {
-    return {
-      content: `Can you be more specific or use a number? That could describe ${oxfordComma(items.map((item) => `**${item.displayName}**`), 'or')}.`
-    };
+    return getError(
+      `Can you be more specific or use a number? That could describe ${oxfordComma(items.map((item) => `**${item.displayName}**`), 'or')}.`
+    )
   }
 
   const [item] = items;
@@ -143,7 +147,7 @@ const getItemEmbed = async (interaction) => {
 
       default:
         // TODO Fail back up the chain? Or at least do the same thing everywhere.
-        return { content: `Unknown button ${customId}.`, embeds: [], components: [] };
+        return getError(`Unknown button ${customId}`, { embeds: [], components: [] } );
     }
   });
 
