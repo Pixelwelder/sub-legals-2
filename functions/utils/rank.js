@@ -1,4 +1,4 @@
-const { getFirestore } = require('firebase-admin/firestore');
+const { getFirestore, increment } = require('firebase-admin/firestore');
 // const isCommand = require('./isCommand');
 const channels = require('./channels');
 const xp = require('./xp');
@@ -80,10 +80,20 @@ const update = async (message, _xpToAdd) => {
 
     // }
 
+    let announcement = `${tag} has ascended to Tier ${xp.toTier(rankUser.xp)}.`;
+    const num = Number(xp.toTier(rankUser.xp));
+    if (num * 10 === Math.floor(num * 10)) {
+      // On the tenths, add a new point the the character.
+      announcement += ' You can use `/character examine` to apply a new point.';
+      await getFirestore().collection('discord_characters').doc(id).update({
+        statPoints: increment(1)
+      });
+    }
+
     const tag = `<@${message.author.id}>`;
     const channel = channels.getBotChannel();
     if (channel) {
-      channel.send(`${tag} has ascended to Tier ${xp.toTier(rankUser.xp)}.`);
+      channel.send(announcement);
     }
   }
 

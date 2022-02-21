@@ -26,6 +26,7 @@ const respond = async (interaction, { ephemeral = true } = {}) => {
   await store.dispatch(inventoryActions.loadData({ userId, toLoad: ['inventory'] }));
   
   const getEmbed = {
+    // TODO This will need to be separated so 'show' failures are private.
     [DialogIds.EXAMINE]: getItemEmbed,
     [DialogIds.GIVE]: getGiveItemEmbed,
     [DialogIds.LIST]: getListEmbed
