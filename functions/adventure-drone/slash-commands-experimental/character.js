@@ -54,13 +54,6 @@ const getUtilButtons = (interaction, { character }) => {
       .setDisabled(character.statPoints === 0)
   )
 
-  buttons.push(
-    new MessageButton()
-      .setCustomId('clone')
-      .setLabel('Clone')
-      .setStyle('DANGER')
-  );
-
   return buttons.length ? [actionRow.addComponents(...buttons)] : [];
 };
 
@@ -253,16 +246,40 @@ const showCharacter = async (
   });
 };
 
+const respond = async (interaction) => {
+  // TODO TODO TODO Start here
+  const responder = {}
+};
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('char')
-    .setDescription(`Do stuff with your character.`),
+    .setDescription(`View (and do stuff with) your character.`),
+    // .addSubcommand(subcommand => subcommand
+    //   .setName('create')
+    //   .setDescription('Create your character (private).')
+    // )
+    // .addSubcommand(subcommand => subcommand
+    //   .setName('examine')
+    //   .setDescription('Examine your character (private).')
+    // )
+    // .addSubcommand(subcommand => subcommand
+    //   .setName('show')
+    //   .setDescription('Show your character to the room (public).')
+    // )
+    // .addSubcommand(subcommand => subcommand
+    //   .setName('kill')
+    //   .setDescription('Kill your character (private).')
+    // )
+    // .addSubcommand(subcommand => subcommand
+    //   .setName('clone')
+    //   .setDescription('Kills your current character and creates a new one.')
+    // ),
     
+  // TODO Don't use reply.
   async execute(interaction, character) {
-    // This function takes a number and randomly divides it into the specified number of numbers.
     const command2 = async () => {
-      await interaction.deferReply({ ephemeral: true });
-      await showCharacter(interaction);
+
     };
 
     const command = {
@@ -388,18 +405,17 @@ module.exports = {
         // Message publicly.
         interaction.channel.send(`<@${interaction.user.id}> is dead. Everyone say hello to their ${ordinal(numClones)} clone, <@${interaction.user.id}>.`);
       }
-    };
+    }
     // }[interaction.options.getSubcommand()];
 
-    if (command2) {
-      try {
-        await command2();
-      } catch (e) {
-        console.error(e);
-        interaction.editReply('Oops, something went wrong.');
-      } finally {
-        console.log('Command complete');
-      }
+    
+    try {
+      await command2();
+    } catch (e) {
+      console.error(e);
+      interaction.editReply('Oops, something went wrong.');
+    } finally {
+      console.log('Command complete');
     }
   }
 };

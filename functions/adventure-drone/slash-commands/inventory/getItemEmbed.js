@@ -78,12 +78,6 @@ const getItemEmbed = async (interaction) => {
       // Private owner controls
       const actionRow = new MessageActionRow();
       const buttons = [];
-      // actionRow.addComponents(
-      //   new MessageButton()
-      //     .setCustomId(ButtonIds.GIVE)
-      //     .setLabel('Give')
-      //     .setStyle('SECONDARY')
-      // );
 
       // if (item.type === ItemTypes.MINION) {
       //   buttons.push(

@@ -66,7 +66,7 @@ const disassemble = createAsyncThunk(`${name}/disassemble`, async ({ userId, ite
   const transaction = getFirestore().runTransaction(async (transaction) => {
     // Create a new schematic from the schematic data stored on the item.
     const { data: { schematic: schematicData } } = item;
-    console.log('schematicData', schematicData);
+    console.log('schematicData:', schematicData.displayName);
 
     const doc = getFirestore().collection('discord_inventory').doc();
     const schematic = new Schematic({
@@ -74,7 +74,7 @@ const disassemble = createAsyncThunk(`${name}/disassemble`, async ({ userId, ite
       uid: doc.id,
       player: userId
     });
-    console.log('schematic', schematic);
+    console.log('schematic:', schematic.uid);
 
     // Add the schematic to the inventory.
     transaction.set(doc, schematic);
