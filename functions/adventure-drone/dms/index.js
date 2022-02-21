@@ -49,7 +49,17 @@ const init = async () => {
       // TODO Resize. That'll be a job for a storage watcher.
       // Upload the attachment to firebase storage.
       // const { name: filename } = attachment;
-      const filename = `${characterDocs.docs[0].id}.${contentTypeToExtension(attachment.contentType)}`;
+      const characterDoc = characterDocs.docs[0];
+      const character = characterDoc.data();
+      // Delete the old image.
+      if (character.image) {
+        await getStorage().bucket().file(`images/discord/characters/${character.image}`).delete();
+      }
+
+      // Upload the new image to firebase storage.
+      const token = uuid();
+      const filename = `${character.uid}-${token}.${contentTypeToExtension(attachment.contentType)}`;
+      console.log('filename', filename);
       const storage = getStorage();
       const bucket = storage.bucket();
       const file = bucket.file(`images/discord/characters/${filename}`);
@@ -60,14 +70,13 @@ const init = async () => {
         metadata: {
           contentType: attachment.contentType,
           metadata: {
-            firebaseStorageDownloadTokens: uuid()
+            firebaseStorageDownloadTokens: token
           }
         }
       });
       console.log('image uploaded');
 
       // Now add it to the character.
-      const characterDoc = characterDocs.docs[0];
       await characterDoc.ref.update({ image: filename });
       console.log('firestore updated')
 
