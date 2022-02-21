@@ -16,7 +16,8 @@ const DialogIds = require('./inventory/DialogIds');
  * @param {Interaction} interaction 
  */
 const respond = async (interaction, { ephemeral = true } = {}) => {
-  await interaction.deferReply({ ephemeral });
+  // The reply is always ephemeral, but sometimes we'll add an announcement.
+  await interaction.deferReply({ ephemeral: true });
 
   const userId = interaction.member.id;
   const thread = getSelectors(userId).selectThread(store.getState());
@@ -36,7 +37,13 @@ const respond = async (interaction, { ephemeral = true } = {}) => {
     response = await getEmbed(interaction);
   }
 
-  await interaction.editReply(response);
+  if (ephemeral) {
+    await interaction.editReply(response);
+  } else {
+    // Send a message to the interaction's channel.
+    await interaction.editReply({ content: 'Done.', embed: [], components: [] });
+    await interaction.channel.send(response);
+  }
 };
 
 module.exports = {

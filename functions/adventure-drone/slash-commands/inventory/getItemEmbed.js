@@ -6,6 +6,8 @@ const getStatFields = require('../../../utils/getStatFields');
 const getStatModifiers = require('../../../utils/getStatModifiers');
 const ItemTypes = require('../../data/ItemTypes');
 const oxfordComma = require('../../../utils/oxfordComma');
+const { getClient } = require('../../client');
+const { getFirestore } = require('firebase-admin/firestore');
 
 const imageRoot = 'http://storage.googleapis.com/species-registry.appspot.com/images/inventory/icon';
 
@@ -47,14 +49,18 @@ const getItemEmbed = async (interaction) => {
 
   const [item] = items;
   const {
-    displayName, image,
+    displayName, image, player,
     data: { stats, statModifiers, fields }
   } = item;
+
+  // Grab the owner from firestore
+  const owner = await getFirestore().collection('discord_users').doc(player).get();
+  const ownerName = owner.exists ? `${owner.data().displayName}'s` : 'Unowned';
 
   const isOwned = item.player === userId;
   const embed = new MessageEmbed()
     .setColor('0x000000')
-    .setTitle(displayName.toUpperCase());
+    .setTitle(`${ownerName} ${displayName.toUpperCase()}`);
 
   // Fields are private.
   if (fields && ephemeral) embed.addFields(fields);
