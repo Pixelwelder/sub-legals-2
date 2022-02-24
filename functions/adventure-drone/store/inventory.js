@@ -16,35 +16,40 @@ const initialState = {
 
 /**
  * Must be run as the first action of any other async thunks.
+ * TODO Optimize. We can check for threads in memory.
  */
-const loadData = createAsyncThunk(`${name}/loadData`, async ({ userId, toLoad = ['thread', 'inventory'] }, { dispatch }) => {
-  // Load thread, or create one if we don't have one.
-  if (toLoad.includes('thread')) {
-    const threadDoc = await getFirestore().collection('discord_ui').doc('inventory').collection('in-flight').doc(userId).get();
-    let thread = new Thread();
-    if (threadDoc.exists) {
-      thread = threadDoc.data();
-    } else {
-      thread = new Thread();
-      await getFirestore().collection('discord_ui').doc('inventory').collection('in-flight').doc(userId).set(thread);
+const loadData = createAsyncThunk(
+  `${name}/loadData`,
+  async ({ userId, interactionId = -1, toLoad = ['thread', 'inventory'] }, { dispatch }) => {
+    // Load thread, or create one if we don't have one.
+    if (toLoad.includes('thread')) {
+      const threadDoc = await getFirestore().collection('discord_ui').doc('inventory').collection('in-flight').doc(userId).get();
+      let thread = new Thread({ interactionId });
+      if (threadDoc.exists) {
+        thread = threadDoc.data();
+      } else {
+        thread = new Thread({ interactionId });
+        await getFirestore().collection('discord_ui').doc('inventory').collection('in-flight').doc(userId).set(thread);
+      }
+
+      dispatch(generatedActions.setThread({ userId, thread }));
     }
 
-    dispatch(generatedActions.setThread({ userId, thread }));
+    if (toLoad.includes('inventory')) {
+      const inventoryDocs = await getFirestore().collection('discord_inventory').where('player', '==', userId).get();
+      const inventory = inventoryDocs.docs.length ? inventoryDocs.docs.map(doc => doc.data()) : [];
+      dispatch(generatedActions.setInventory({ userId, inventory }));
+    }
   }
+);
 
-  if (toLoad.includes('inventory')) {
-    const inventoryDocs = await getFirestore().collection('discord_inventory').where('player', '==', userId).get();
-    const inventory = inventoryDocs.docs.length ? inventoryDocs.docs.map(doc => doc.data()) : [];
-    dispatch(generatedActions.setInventory({ userId, inventory }));
-  }
-});
-
-const saveThread = createAsyncThunk(`${name}/saveThread`, async ({ userId, dialogId, data, mergeData = false }, { dispatch, getState }) => {
+const saveThread = createAsyncThunk(`${name}/saveThread`, async ({ userId, dialogId, interactionId, data, mergeData = false }, { dispatch, getState }) => {
   await dispatch(loadData({ userId, toLoad: ['thread'] }));
 
   const currentThread = getSelectors(userId).selectThread(getState());
   const newThread = { ...currentThread, updated: new Date().getTime() };
   if (dialogId) newThread.dialogId = dialogId;
+  if (interactionId) newThread.interactionId = interactionId;
   if (data) newThread.data = mergeData ? { ...currentThread.data, ...data } : data;
 
   await getFirestore().collection('discord_ui').doc('inventory').collection('in-flight').doc(userId).set(newThread);
@@ -103,6 +108,18 @@ const give = createAsyncThunk(`${name}/give`, async ({ userId, itemUid, resident
   }
 });
 
+// Reset's a user's state.
+const resetUser = createAsyncThunk(`${name}/resetUser`, async ({ userId }, { dispatch }) => {
+  console.log('--- resetting ---');
+  try {
+    await getFirestore().collection('discord_ui').doc('inventory').collection('in-flight').doc(userId).delete();
+    dispatch(generatedActions.resetUser({ userId }));
+    // return { userId }
+  } catch (error) {
+    console.error('ERROR', error);
+  }
+});
+
 const { reducer, actions: generatedActions } = createSlice({
   name,
   initialState,
@@ -116,11 +133,15 @@ const { reducer, actions: generatedActions } = createSlice({
       const { userId, thread } = action.payload;
       state[userId] = state[userId] || {};
       state[userId].thread = thread;
+    },
+    resetUser: (state, action) => {
+      const { userId } = action.payload;
+      delete state[userId];
     }
   }
 });
 
-const actions = { loadData, saveThread, disassemble, give };
+const actions = { loadData, saveThread, disassemble, give, resetUser };
 
 // Each user gets their own set of selectors, keyed by userId.
 const selectors = {};
@@ -132,7 +153,7 @@ const createSelectors = (userId) => {
     selectInventory,
     inventory => inventory.reduce((acc, item) => ({ ...acc, [item.uid]: item }), {})
   );
-  const selectThread = createSelector(select, ({ thread }) => thread);
+  const selectThread = createSelector(select, ({ thread } = {}) => thread);
   selectors[userId] = { select, selectInventory, selectInventoryByUid, selectThread };
 }
 

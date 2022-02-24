@@ -80,6 +80,7 @@ const update = async (message, _xpToAdd) => {
 
     // }
 
+    const tag = `<@${message.author.id}>`;
     let announcement = `${tag} has ascended to Tier ${xp.toTier(rankUser.xp)}.`;
     const num = Number(xp.toTier(rankUser.xp));
     if (num * 10 === Math.floor(num * 10)) {
@@ -90,7 +91,6 @@ const update = async (message, _xpToAdd) => {
       });
     }
 
-    const tag = `<@${message.author.id}>`;
     const channel = channels.getBotChannel();
     if (channel) {
       channel.send(announcement);

@@ -17,6 +17,7 @@ module.exports = (commandStr) => {
 
   // TODO easily abused, e.g. "please kill yourself"
   if (processedCommandStr.includes('please')) return 0.5;
+  if (processedCommandStr.includes('thank')) return 0.5;
 
   return 0;
 };

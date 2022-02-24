@@ -30,7 +30,7 @@ const onMessage = async (message, type) => {
   if (politeness < 0) delta -= 1;
   if (politeness > 0) delta += 1;
   if (isProfane) delta -= 1;
-  let newOpinion = user.opinion + delta;
+  let newOpinion = (user.opinion || 0) + delta;
   newOpinion = Math.max(0, newOpinion);
   newOpinion = Math.min(9, newOpinion);
 
