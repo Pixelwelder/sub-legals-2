@@ -66,6 +66,10 @@ const respond = async (interaction, { ephemeral = true } = {}) => {
   }
 };
 
+const interactionsById = {
+  // [interactionId]: <interaction>
+};
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('inv')
@@ -107,16 +111,30 @@ module.exports = {
     
   async execute(interaction) {
     console.log('EXECUTE', interaction.id);
-
-    // The reply is always ephemeral, but sometimes we'll add an announcement.
-    await interaction.deferReply({ ephemeral: true });
-
     const userId = interaction.member.id;
     const interactionId = interaction.id;
 
-    // Grab the thread immediately. Since we don't know what user this is, we always have to load it.
+    // The reply is always ephemeral, but sometimes we'll add an announcement.
+    // Give us some time to think without timing out.
+    await interaction.deferReply({ ephemeral: true });
+
+    // Grab the thread to see where we are.
     await store.dispatch(inventoryActions.loadData({ toLoad: ['thread'], userId, interactionId }));
     let thread = getSelectors(userId).selectThread(store.getState());
+    console.log('current thread', thread);
+
+    // Now that we have the thread: do we have an existing interaction?
+    const existingInteraction = interactionsById[thread.interactionId];
+    if (existingInteraction) {
+      existingInteraction.editReply({ content: '_Expired._', components: [], embed: [] });
+      delete interactionsById[interactionId];
+    }
+
+    // Now save _this_ interaction.
+    interactionsById[interactionId] = interaction;
+    await store.dispatch(inventoryActions.saveThread({ userId, interactionId }));
+
+    return interaction.editReply({ content: 'Done.' }); /// TEMP TEMP TEMP ///
 
     // Are we in the current thread?
     if (thread.interactionId !== interactionId) {

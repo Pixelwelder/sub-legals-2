@@ -15,25 +15,44 @@ const initialState = {
 };
 
 /**
+ * Creates or gets the thread for the user.
+ * Also sets it in the store.
+ */
+const _getThread = createAsyncThunk(`${name}/getThread`, async ({ userId, interactionId, forceLoad }, { getState, dispatch }) => {
+  console.log('inventory/_getThread');
+  // If we already have the thread, don't load unless forceLoad.
+  let thread = getSelectors(userId).selectThread(getState());
+  if (!thread || forceLoad) {
+    console.log('- no thread, loading');
+    // Load thread, or create one if we don't have one.
+    
+    const threadDoc = await getFirestore().collection('discord_ui').doc('inventory').collection('in-flight').doc(userId).get();
+    if (threadDoc.exists) {
+      thread = threadDoc.data();
+    } else {
+      thread = new Thread({ interactionId });
+      await getFirestore().collection('discord_ui').doc('inventory').collection('in-flight').doc(userId).set(thread);
+    }
+
+    dispatch(generatedActions.setThread({ userId, thread }));
+  }
+
+  return thread;
+});
+
+/**
  * Must be run as the first action of any other async thunks.
  * TODO Optimize. We can check for threads in memory.
  */
 const loadData = createAsyncThunk(
   `${name}/loadData`,
-  async ({ userId, interactionId = -1, toLoad = ['thread', 'inventory'] }, { dispatch }) => {
-    // Load thread, or create one if we don't have one.
-    if (toLoad.includes('thread')) {
-      const threadDoc = await getFirestore().collection('discord_ui').doc('inventory').collection('in-flight').doc(userId).get();
-      let thread = new Thread({ interactionId });
-      if (threadDoc.exists) {
-        thread = threadDoc.data();
-      } else {
-        thread = new Thread({ interactionId });
-        await getFirestore().collection('discord_ui').doc('inventory').collection('in-flight').doc(userId).set(thread);
-      }
+  async ({ userId, interactionId = -1, toLoad = ['thread', 'inventory'], forceLoad = false }, { dispatch, getState }) => {
+    console.log('inventory/loadData');
+    // Update the thread, then get it.
+    await dispatch(_getThread({ userId, interactionId, forceLoad }));
+    const thread = getSelectors(userId).selectThread(getState());
 
-      dispatch(generatedActions.setThread({ userId, thread }));
-    }
+    
 
     if (toLoad.includes('inventory')) {
       const inventoryDocs = await getFirestore().collection('discord_inventory').where('player', '==', userId).get();
