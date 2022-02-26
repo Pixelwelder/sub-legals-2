@@ -21,17 +21,17 @@ const timeoutSecs = 30;
  * @param {Interaction} interaction 
  */
 const respond = async (interaction, { ephemeral = true } = {}) => {
-  console.log('RESPOND', interaction.id);
-
+  console.log('\n-------- RESPOND');
   const userId = interaction.member.id;
   const thread = getSelectors(userId).selectThread(store.getState());
+  console.log('thread: ', thread);
   let response = { content: `No response for ${thread.dialogId}.`, embeds: [], components: [] };
   let meta = {};
 
   // Thread should be current, but we load inventory.
-  await store.dispatch(inventoryActions.loadData({
-    userId, interactionId: interaction.id, toLoad: ['inventory']
-  }));
+  // await store.dispatch(inventoryActions.loadData({
+  //   userId, interactionId: interaction.id, toLoad: ['inventory']
+  // }));
   
   const getEmbed = {
     // TODO This will need to be separated so 'show' failures are private.
@@ -74,7 +74,7 @@ const expire = async (interaction, { clear = false } = {}) => {
     // When an interaction expires, we simply remove the buttons.
     await interaction.editReply({ components: [] });
   } catch (err) {
-    console.error(err);
+    console.error('++ handled: ', err.message);
   }
 
   delete interactionsByUserId[userId];
@@ -130,6 +130,14 @@ module.exports = {
         .setDescription('The station resident to give the item to.')
         .setRequired(true)
       )),
+      // .addSubcommand(subcommand => subcommand
+      //   .setName('disassemble')
+      //   .setDescription('Disassembled an item.')
+      //   .addStringOption(option => option
+      //     .setName('item')
+      //     .setDescription('The name or number of the item to disassemble.')
+      //     .setRequired(true)
+      // )),
     
   async execute(interaction) {
     console.log('EXECUTE', interaction.id);
@@ -156,63 +164,65 @@ module.exports = {
     }, timeoutSecs * 1000);
 
     // Listen to the store for this interaction.
-    unsubscribesByUserId[userId] = observeStore(store, getSelectors(userId).selectDialogId, async (thread) => {
-      console.log(userId, 'observes change', thread.dialogId);
-      if (thread) {
+    unsubscribesByUserId[userId] = observeStore(store, getSelectors(userId).selectDialogId, async (dialogId, old) => {
+      console.log('dialogId', old, '-->', dialogId);
+      if (dialogId > -1) {
+        console.log(userId, 'observes change', dialogId);
         await respond(interaction);
       }
     });
 
+    // Initialize user.
+    await store.dispatch(inventoryActions.initialize({ userId }));
+
     // ---------------------------------------------- RESPOND ----------------------------------------------
-    // Grab the thread to see where we are.
-    await store.dispatch(inventoryActions.loadData({ toLoad: ['thread'], userId, interactionId }));
-    let thread = getSelectors(userId).selectThread(store.getState());
+    const saveThread = inventoryActions.saveThread2;
     
     const command = {
       'list': async () => {
-        await store.dispatch(inventoryActions.saveThread({
+        const thread = getSelectors(userId).selectThread(store.getState());
+        console.log('list thread: ', thread);
+        await store.dispatch(saveThread({
           userId, dialogId: DialogIds.LIST, data: { ephemeral: true }
         }));
-        // respond(interaction);
       },
 
       'examine': async () => {
-        // Save location in thread.
-        await store.dispatch(inventoryActions.saveThread({
+        await store.dispatch(saveThread({
           userId, dialogId: DialogIds.EXAMINE, data: { searchString: interaction.options.getString('item'), ephemeral: true }
         }));
-
-        // Get response.
-        // respond(interaction);
       },
 
       'show': async () => {
-        // Save location in thread.
-        await store.dispatch(inventoryActions.saveThread({
+        await store.dispatch(saveThread({
           userId, dialogId: DialogIds.EXAMINE, data: { searchString: interaction.options.getString('item'), ephemeral: false }
         }));
-
-        // Get response.
-        // respond(interaction, { ephemeral: false });
       },
 
       'reset': async () => {
-        await store.dispatch(inventoryActions.resetUser({ userId }));
-        // respond(interaction);
+        await store.dispatch(resetUser({ userId }));
       },
 
-      // Give the inventory item to another user.
       'give': async () => {
-        await store.dispatch(inventoryActions.saveThread({
+        await store.dispatch(saveThread({
           userId, dialogId: DialogIds.GIVE, data: {
             searchString: interaction.options.getString('item'),
             resident: interaction.options.getUser('resident').id,
             ephemeral: true
           }
         }));
+      },
 
-        // respond(interaction);
-      }
+      // 'disassemble': async () => {
+      //   await store.dispatch(inventoryActions.saveThread({
+      //     userId, dialogId: DialogIds.DISASSEMBLE, data: {
+      //       searchString: interaction.options.getString('item'),
+      //       ephemeral: true
+      //     }
+      //   }));
+
+      //   // respond(interaction);
+      // }
     }[interaction.options.getSubcommand()];
 
     if (command) {

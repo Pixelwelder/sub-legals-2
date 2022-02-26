@@ -12,17 +12,19 @@ const ButtonIds = {
 };
 
 const getConfirmationEmbed = async (interaction, { item, title, description }) => {
+  await interaction.editReply({ content: '_Expired_', components: [], embeds: [] });
+  
   const embed = new MessageEmbed()
     .setColor('0x000000')
     .setTitle(title)
-    .setDescription(`Are you sure you want to give ${displayName} to ${player.displayName}?`)
+    .setDescription(description)
     .setImage(`${imageRoot}/${item.image}`);
 
   const actionRow = new MessageActionRow();
   actionRow.addComponents(
     new MessageButton()
-      .setCustomId(ButtonIds.GIVE)
-      .setLabel('Give')
+      .setCustomId(ButtonIds.CONFIRM)
+      .setLabel('Confirm')
       .setStyle('DANGER'),
 
     new MessageButton()
@@ -31,7 +33,9 @@ const getConfirmationEmbed = async (interaction, { item, title, description }) =
       .setStyle('SECONDARY')
   );
 
-  return { content: 'Disassembling...', components: [], embeds: [] };
+  // await interaction.followUp({ embeds: [embed], components: [actionRow] });
+  // await new Promise(resolve => setTimeout(resolve, 5000));
+  return { content: 'Disassembling...', components: [actionRow], embeds: [embed] };
 };
 
 const getDisassembleEmbed = async (interaction) => {
@@ -43,6 +47,12 @@ const getDisassembleEmbed = async (interaction) => {
   console.log('item', itemUid, !!item);
   // console.log(inventory);
   if (!item) return { content: `You don't own that item.`, embeds: [], components: [] };
+
+  const response = getConfirmationEmbed(interaction, {
+    item,
+    title: `DISASSEMBLE ${item.displayName.toUpperCase()}`,
+    description: `Are you sure you want to disassemble ${item.displayName}?`
+  });
   
   // const confirmation = getConfirmationEmbed(interaction, {
   //   item
@@ -67,7 +77,7 @@ const getDisassembleEmbed = async (interaction) => {
   //     .setStyle('SECONDARY')
   // );
 
-  return { content: `Disassembling ${item.displayName}`, components: [], embeds: [] };
+  return response;
 };
 
 module.exports = getDisassembleEmbed;

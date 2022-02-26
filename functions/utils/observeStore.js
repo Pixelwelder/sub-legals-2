@@ -3,9 +3,11 @@ function observeStore(store, select, onChange) {
 
   function handleChange() {
     let nextState = select(store.getState());
+    console.log('handleChange', nextState);
     if (nextState !== currentState) {
+      const prevState = currentState;
       currentState = nextState;
-      onChange(currentState);
+      onChange(currentState, prevState);
     }
   }
 
