@@ -46,14 +46,11 @@ const respond = async (interaction, { ephemeral = true } = {}) => {
     ({ meta = {}, ...response } = responseObj);
   }
 
-  // Save.
-  interactionIdsByUserId[userId] = [interaction.channel.id, interaction.id];
-
   if (ephemeral || !meta.success) {
     await interaction.editReply(response);
   } else {
     // Send a message to the interaction's channel.
-    await interaction.editReply({ content: 'Done.', embed: [], components: [] });
+    await interaction.editReply({ content: 'Done.', embeds: [], components: [] });
     await interaction.channel.send(response);
   }
 };
@@ -74,7 +71,8 @@ const timeoutsByUserId = {
 const expire = async (interaction) => {
   const userId = interaction.member.id;
   try {
-    await interaction.editReply({ content: '_Expired._', embed: [], components: [] });
+    // When an interaction expires, we simply remove the buttons.
+    await interaction.editReply({ content: '_Expired._', components: [] });
   } catch (err) {
     console.error(err);
   }
@@ -160,26 +158,13 @@ module.exports = {
     // Listen to the store for this interaction.
     unsubscribesByUserId[userId] = observeStore(store, getSelectors(userId).selectThread, async (thread) => {
       console.log(userId, 'observes change', thread.dialogId);
-      if (interaction.id === thread.interactionId) {
-        console.log(' +++ USER HAS NAVIGATED +++', thread.dialogId, thread.interactionId);
-        await respond(interaction);
-      }
+      await respond(interaction);
     });
 
-    
-
+    // ---------------------------------------------- RESPOND ----------------------------------------------
     // Grab the thread to see where we are.
-    // await store.dispatch(inventoryActions.loadData({ toLoad: ['thread'], userId, interactionId }));
-    // let thread = getSelectors(userId).selectThread(store.getState());
-
-    return interaction.editReply({ content: 'Done.' });
-
-    
-    // Grab the thread again.
-    // thread = getSelectors(userId).selectThread(store.getState());
-    
-
-    return interaction.editReply({ content: 'Done.' }); /// TEMP TEMP TEMP ///
+    await store.dispatch(inventoryActions.loadData({ toLoad: ['thread'], userId, interactionId }));
+    let thread = getSelectors(userId).selectThread(store.getState());
     
     const command = {
       'list': async () => {
@@ -233,7 +218,7 @@ module.exports = {
         await command();
       } catch (e) {
         console.error(e);
-        interaction.editReply('Oops, something went wrong.');
+        interaction.editReply('Oops, something went wrong. Try again?');
       } finally {
         console.log('Command complete');
       }
