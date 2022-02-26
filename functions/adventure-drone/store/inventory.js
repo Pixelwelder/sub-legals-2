@@ -52,8 +52,6 @@ const loadData = createAsyncThunk(
     await dispatch(_getThread({ userId, interactionId, forceLoad }));
     const thread = getSelectors(userId).selectThread(getState());
 
-    
-
     if (toLoad.includes('inventory')) {
       const inventoryDocs = await getFirestore().collection('discord_inventory').where('player', '==', userId).get();
       const inventory = inventoryDocs.docs.length ? inventoryDocs.docs.map(doc => doc.data()) : [];

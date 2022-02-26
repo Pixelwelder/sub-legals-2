@@ -32,7 +32,7 @@ const go = async () => {
   });
 
   client.on('interactionCreate', async (interaction) => {
-    console.log('interaction');
+    console.log('interaction', interaction.commandName);
     if (!interaction.isCommand()) return;
 
     const command = client.commands.get(interaction.commandName);

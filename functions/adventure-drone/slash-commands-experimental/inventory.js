@@ -13,15 +13,7 @@ const getDisassembleEmbed = require('./inventory/getDisassembleEmbed');
 const observeStore = require('../../utils/observeStore');
 const { getClient } = require('../client');
 
-// Each user may have an observable running. We always kill it if it exists.
-let unsubscribesByUserId = {
-  // [userId]: () => {}
-};
-
-// The user might be in the middle of another interaction. If so, and we can find it, we kill it.
-let interactionIdsByUserId = {
-  // [userId]: [<channelId>, <interactionId>]
-};
+const timeoutSecs = 30;
 
 /**
  * Responds to the thread currently in Redux.
@@ -66,9 +58,41 @@ const respond = async (interaction, { ephemeral = true } = {}) => {
   }
 };
 
-const interactionsById = {
-  // [interactionId]: <interaction>
+// Each user may have an observable running. We always kill it if it exists.
+const unsubscribesByUserId = {
+  // [userId]: () => {}
 };
+
+const interactionsByUserId = {
+  // [userId]: <interaction>
+};
+
+const timeoutsByUserId = {
+  // [userId]: <timeout>
+};
+
+const expire = async (interaction) => {
+  const userId = interaction.member.id;
+  try {
+    await interaction.editReply({ content: '_Expired._', embed: [], components: [] });
+  } catch (err) {
+    console.error(err);
+  }
+
+  delete interactionsByUserId[userId];
+
+  // Kill any existing timeout.
+  if (timeoutsByUserId[userId]) {
+    clearTimeout(timeoutsByUserId[userId]);
+    delete timeoutsByUserId[userId];
+  }
+
+  // Kill the observable.
+  if (unsubscribesByUserId[userId]) {
+    unsubscribesByUserId[userId]();
+    delete unsubscribesByUserId[userId];
+  }
+}
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -118,62 +142,22 @@ module.exports = {
     // Give us some time to think without timing out.
     await interaction.deferReply({ ephemeral: true });
 
-    // Grab the thread to see where we are.
-    await store.dispatch(inventoryActions.loadData({ toLoad: ['thread'], userId, interactionId }));
-    let thread = getSelectors(userId).selectThread(store.getState());
-    console.log('current thread', thread);
-
-    // Now that we have the thread: do we have an existing interaction?
-    const existingInteraction = interactionsById[thread.interactionId];
+    // The user may have an active interaction. We kill that first.
+    const existingInteraction = interactionsByUserId[userId];
     if (existingInteraction) {
-      existingInteraction.editReply({ content: '_Expired._', components: [], embed: [] });
-      delete interactionsById[interactionId];
+      await expire(existingInteraction);
     }
 
-    // Now save _this_ interaction.
-    interactionsById[interactionId] = interaction;
-    await store.dispatch(inventoryActions.saveThread({ userId, interactionId }));
+    // ---------------------------------------------- SETUP ----------------------------------------------
+    // Now save _this_ interaction so we can expire it later if necessary.
+    interactionsByUserId[userId] = interaction;
 
-    return interaction.editReply({ content: 'Done.' }); /// TEMP TEMP TEMP ///
+    // Set up a timeout so we can expire this interaction if it takes too long.
+    timeoutsByUserId[userId] = setTimeout(async () => {
+      expire(interaction);
+    }, timeoutSecs * 1000);
 
-    // Are we in the current thread?
-    if (thread.interactionId !== interactionId) {
-      // No, we're not.
-      console.log('Not in current thread:', thread.interactionId, interactionId);
-      await store.dispatch(inventoryActions.saveThread({ userId, interactionId }));
-
-      // Unsubscribe.
-      if (unsubscribesByUserId[userId]) {
-        console.log('unsubscribing', userId);
-        unsubscribesByUserId[userId]();
-        delete unsubscribesByUserId[userId];
-      } else {
-        console.log('nothing to unsubscribe', userId);
-      }
-
-      // Kill interaction.
-      // if (interactionIdsByUserId[userId]) {
-      //   const [oldChannelId, oldInteractionId] = interactionIdsByUserId[userId];
-      //   console.log('killing last interaction for', userId, oldChannelId, oldInteractionId);
-
-      //   const client = getClient();
-      //   const channel = await client.channels.cache.get(oldChannelId);
-      //   console.log('channel', channel.id);
-      //   const messages = await channel.messages.fetch({ around: oldInteractionId, limit: 1 });
-      //   console.log('messages', messages);
-      //   const message = messages.get(oldInteractionId);
-      //   console.log('\n\nmessage', message);
-      //   await message.edit({ content: 'Cancelled.', embed: [], components: [] });
-      //   console.log('old message deleted?');
-        
-      //   delete interactionIdsByUserId[userId];
-      // } else {
-      //   console.log('no existing interaction');
-      // }
-    }
-
-    // Grab the thread again.
-    thread = getSelectors(userId).selectThread(store.getState());
+    // Listen to the store for this interaction.
     unsubscribesByUserId[userId] = observeStore(store, getSelectors(userId).selectThread, async (thread) => {
       console.log(userId, 'observes change', thread.dialogId);
       if (interaction.id === thread.interactionId) {
@@ -181,6 +165,21 @@ module.exports = {
         await respond(interaction);
       }
     });
+
+    
+
+    // Grab the thread to see where we are.
+    // await store.dispatch(inventoryActions.loadData({ toLoad: ['thread'], userId, interactionId }));
+    // let thread = getSelectors(userId).selectThread(store.getState());
+
+    return interaction.editReply({ content: 'Done.' });
+
+    
+    // Grab the thread again.
+    // thread = getSelectors(userId).selectThread(store.getState());
+    
+
+    return interaction.editReply({ content: 'Done.' }); /// TEMP TEMP TEMP ///
     
     const command = {
       'list': async () => {
