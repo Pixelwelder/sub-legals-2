@@ -25,7 +25,7 @@ const respond = async (interaction, { ephemeral = true } = {}) => {
 
   const userId = interaction.member.id;
   const thread = getSelectors(userId).selectThread(store.getState());
-  let response = { content: `No response for ${thread.dialogId}.` };
+  let response = { content: `No response for ${thread.dialogId}.`, embeds: [], components: [] };
   let meta = {};
 
   // Thread should be current, but we load inventory.
@@ -68,11 +68,11 @@ const timeoutsByUserId = {
   // [userId]: <timeout>
 };
 
-const expire = async (interaction) => {
+const expire = async (interaction, { clear = false } = {}) => {
   const userId = interaction.member.id;
   try {
     // When an interaction expires, we simply remove the buttons.
-    await interaction.editReply({ content: '_Expired._', components: [] });
+    await interaction.editReply({ components: [] });
   } catch (err) {
     console.error(err);
   }
@@ -156,9 +156,11 @@ module.exports = {
     }, timeoutSecs * 1000);
 
     // Listen to the store for this interaction.
-    unsubscribesByUserId[userId] = observeStore(store, getSelectors(userId).selectThread, async (thread) => {
+    unsubscribesByUserId[userId] = observeStore(store, getSelectors(userId).selectDialogId, async (thread) => {
       console.log(userId, 'observes change', thread.dialogId);
-      await respond(interaction);
+      if (thread) {
+        await respond(interaction);
+      }
     });
 
     // ---------------------------------------------- RESPOND ----------------------------------------------

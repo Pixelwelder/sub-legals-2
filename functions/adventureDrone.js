@@ -32,11 +32,18 @@ const go = async () => {
   });
 
   client.on('interactionCreate', async (interaction) => {
-    console.log('interaction', interaction.commandName);
-    if (!interaction.isCommand()) return;
+    console.log('interaction', interaction.commandName, interaction.customId);
+    if (!interaction.isCommand()) return; // TODO Can take buttons here too.
 
-    const command = client.commands.get(interaction.commandName);
+    let commandName;
+    if (interaction.commandName) {
+      commandName = interaction.commandName;
+      // Does the string start with 'command:'?
+    } else if (interaction.customId.startsWith('command:')) {
+      // ([, commandName] = interaction.customId.split(':'));
+    }
 
+    const command = client.commands.get(commandName);
     if (!command) return;
 
     try {

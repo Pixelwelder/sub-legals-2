@@ -171,7 +171,8 @@ const createSelectors = (userId) => {
     inventory => inventory.reduce((acc, item) => ({ ...acc, [item.uid]: item }), {})
   );
   const selectThread = createSelector(select, ({ thread } = {}) => thread);
-  selectors[userId] = { select, selectInventory, selectInventoryByUid, selectThread };
+  const selectDialogId = createSelector(selectThread, ({ dialogId = 0 } = {}) => dialogId);
+  selectors[userId] = { select, selectInventory, selectInventoryByUid, selectThread, selectDialogId };
 }
 
 const getSelectors = userId => {

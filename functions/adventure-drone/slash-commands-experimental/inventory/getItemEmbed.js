@@ -89,6 +89,15 @@ const getItemEmbed = async (interaction) => {
       //   );
       // }
 
+      // if (item.type === ItemTypes.SCHEMATIC) {
+      //   buttons.push(
+      //     new MessageButton()
+      //       .setCustomId('command:forge')
+      //       .setLabel('Build')
+      //       .setStyle('PRIMARY')
+      //   );
+      // }
+
       if (item.data.schematic) {
         buttons.push(
           new MessageButton()
@@ -123,7 +132,7 @@ const getItemEmbed = async (interaction) => {
 
     // Grab ID, then blank buttons to avoid bug.
     const { customId } = i.component;
-    await i.update({ components: [] });
+    await interaction.editReply({ components: [] });
     
     console.log('button', customId);
     switch (customId) {
@@ -157,7 +166,7 @@ const getItemEmbed = async (interaction) => {
   });
 
   // ------------------------------------------------------------------------------------------------------------------
-  return { embeds: [embed], components };
+  return { embeds: [embed], components, content: ' ' };
 };
 
 module.exports = getItemEmbed;
