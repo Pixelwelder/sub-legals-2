@@ -14,6 +14,7 @@ const observeStore = require('../../utils/observeStore');
 const { getClient } = require('../client');
 
 const timeoutSecs = 30;
+let temp_num = 0;
 
 /**
  * Responds to the thread currently in Redux.
@@ -21,12 +22,12 @@ const timeoutSecs = 30;
  * @param {Interaction} interaction 
  */
 const respond = async (interaction, { ephemeral = true } = {}) => {
-  console.log('\n-------- RESPOND');
   const userId = interaction.member.id;
   const thread = getSelectors(userId).selectThread(store.getState());
-  console.log('thread: ', thread);
   let response = { content: `No response for ${thread.dialogId}.`, embeds: [], components: [] };
   let meta = {};
+
+  console.log('RESPOND', temp_num ++, thread.dialogId);
 
   // Thread should be current, but we load inventory.
   // await store.dispatch(inventoryActions.loadData({
@@ -47,6 +48,7 @@ const respond = async (interaction, { ephemeral = true } = {}) => {
   }
 
   if (ephemeral || !meta.success) {
+    console.log('sending reply', response.content);
     await interaction.editReply(response);
   } else {
     // Send a message to the interaction's channel.
@@ -164,16 +166,20 @@ module.exports = {
     }, timeoutSecs * 1000);
 
     // Listen to the store for this interaction.
-    unsubscribesByUserId[userId] = observeStore(store, getSelectors(userId).selectDialogId, async (dialogId, old) => {
-      console.log('dialogId', old, '-->', dialogId);
-      if (dialogId > -1) {
-        console.log(userId, 'observes change', dialogId);
-        await respond(interaction);
-      }
-    });
+    console.log('subscribe');
+    unsubscribesByUserId[userId] = observeStore(
+      store,
+      getSelectors(userId).selectNonce,
+      getSelectors(userId).selectDialogId,
+      async (dialogId) => {
+        if (dialogId > -1) {
+          console.log(userId, 'observes change:', dialogId);
+          await respond(interaction);
+        }
+      });
 
     // Initialize user.
-    await store.dispatch(inventoryActions.initialize({ userId }));
+    await store.dispatch(inventoryActions.initialize({ userId }))
 
     // ---------------------------------------------- RESPOND ----------------------------------------------
     const saveThread = inventoryActions.saveThread2;
@@ -181,7 +187,6 @@ module.exports = {
     const command = {
       'list': async () => {
         const thread = getSelectors(userId).selectThread(store.getState());
-        console.log('list thread: ', thread);
         await store.dispatch(saveThread({
           userId, dialogId: DialogIds.LIST, data: { ephemeral: true }
         }));
@@ -234,6 +239,8 @@ module.exports = {
       } finally {
         console.log('Command complete');
       }
+    } else {
+      return interaction.editReply({ content: `No reply for ${interaction.options.getSubcommand()}.` });
     }
   }
 }

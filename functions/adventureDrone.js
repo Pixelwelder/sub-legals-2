@@ -32,7 +32,7 @@ const go = async () => {
   });
 
   client.on('interactionCreate', async (interaction) => {
-    console.log('interaction', interaction.commandName, interaction.customId);
+    console.log('\n-------- interaction', interaction.commandName);
     if (!interaction.isCommand()) return; // TODO Can take buttons here too.
 
     let commandName;

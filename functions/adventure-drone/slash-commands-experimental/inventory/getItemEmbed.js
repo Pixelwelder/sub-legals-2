@@ -166,7 +166,7 @@ const getItemEmbed = async (interaction) => {
   });
 
   // ------------------------------------------------------------------------------------------------------------------
-  return { embeds: [embed], components, content: ' ' };
+  return { embeds: [embed], components, content: 'getItemEmbed' };
 };
 
 module.exports = getItemEmbed;

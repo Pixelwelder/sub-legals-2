@@ -26,11 +26,10 @@ const initialize = createAsyncThunk(`${name}/initialize`, async ({ userId }, { g
 });
 
 const saveThread2 = createAsyncThunk(`${name}/saveThread2`, async ({ userId, dialogId, data, mergeData = false }, { getState, dispatch }) => {
-  console.log('saveThread', dialogId);
   const thread = { ...getSelectors(userId).selectThread(getState()) };
   if (dialogId) thread.dialogId = dialogId;
   if (data) thread.data = mergeData ? { ...thread.data, ...data } : data;
-  console.log('new thread', thread);
+  thread.nonce = Math.random();
   dispatch(generatedActions.setThread({ userId, thread }));
 });
 
@@ -204,7 +203,8 @@ const createSelectors = (userId) => {
   );
   const selectThread = createSelector(select, ({ thread } = {}) => thread);
   const selectDialogId = createSelector(selectThread, ({ dialogId } = {}) => dialogId);
-  selectors[userId] = { select, selectInventory, selectInventoryByUid, selectThread, selectDialogId };
+  const selectNonce = createSelector(selectThread, ({ nonce } = {}) => nonce);
+  selectors[userId] = { select, selectInventory, selectInventoryByUid, selectThread, selectDialogId, selectNonce };
 }
 
 const getSelectors = userId => {

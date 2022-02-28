@@ -31,7 +31,7 @@ const getListEmbed = async (interaction) => {
     embed.setDescription('You don\'t have any items.');
   }
 
-  return { embeds: [embed], components: [] };
+  return { embeds: [embed], components: [], content: 'getListEmbed' };
 };
 
 module.exports = getListEmbed;
