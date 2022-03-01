@@ -50,11 +50,9 @@ const respond = async (interaction) => {
   }
 
   if (ephemeral || meta.success === false) {
-    console.log('+ ephemeral or failure', ephemeral, meta.success);
     await interaction.editReply(response);
   } else {
     // Send a message to the interaction's channel.
-    console.log('+ public message');
     await interaction.editReply({ content: 'Done.', embeds: [], components: [] });
     await interaction.channel.send(response);
   }
