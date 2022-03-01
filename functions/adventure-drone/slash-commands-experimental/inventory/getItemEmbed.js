@@ -98,14 +98,14 @@ const getItemEmbed = async (interaction) => {
       //   );
       // }
 
-      if (item.data.schematic) {
-        buttons.push(
-          new MessageButton()
-            .setCustomId(ButtonIds.DISASSEMBLE)
-            .setLabel('Disassemble')
-            .setStyle('DANGER')
-        );
-      }
+      // if (item.data.schematic) {
+      //   buttons.push(
+      //     new MessageButton()
+      //       .setCustomId(ButtonIds.DISASSEMBLE)
+      //       .setLabel('Disassemble')
+      //       .setStyle('DANGER')
+      //   );
+      // }
 
       if (buttons.length) {
         actionRow.addComponents(buttons);
@@ -166,7 +166,7 @@ const getItemEmbed = async (interaction) => {
   });
 
   // ------------------------------------------------------------------------------------------------------------------
-  return { embeds: [embed], components, content: 'getItemEmbed' };
+  return { embeds: [embed], components };
 };
 
 module.exports = getItemEmbed;

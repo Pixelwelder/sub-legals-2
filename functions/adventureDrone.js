@@ -93,15 +93,19 @@ const go = async () => {
 
       // Add an inventory item.
       const doc = getFirestore().collection('discord_inventory').doc();
-      const item = new UsersManual({ uid: doc.id, username: member.user.username, userUid: member.user.id });
+      const item = new UsersManual({
+        uid: doc.id,
+        displayName: `${member.user.username}'s User's Manual`,
+        player: member.user.id
+      });
       const obj = JSON.parse(JSON.stringify(item));
       console.log('manual', item);
       await doc.set(item);
     }
 
     // Welcome the new user aboard.
-    const channelId = '941289749119901736'; // TLH Test | #game-channel
-    // const channelId = '685518066402328705'; // TLH | #general
+    // const channelId = '941289749119901736'; // TLH Test | #game-channel
+    const channelId = '685518066402328705'; // TLH | #general
     const channel = client.channels.cache.get(channelId);
 
     channel.send(`A new scientist has arrived in Airlock ${Math.floor(Math.random() * 20) + 1}. Everyone please welcome ${member.user.toString()} to our humble orbital station.`);

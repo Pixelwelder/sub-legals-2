@@ -21,9 +21,11 @@ let temp_num = 0;
  *
  * @param {Interaction} interaction 
  */
-const respond = async (interaction, { ephemeral = true } = {}) => {
+const respond = async (interaction) => {
   const userId = interaction.member.id;
   const thread = getSelectors(userId).selectThread(store.getState());
+  console.log('responding to thread', thread);
+  const ephemeral = !!thread?.data?.ephemeral;
   let response = { content: `No response for ${thread.dialogId}.`, embeds: [], components: [] };
   let meta = {};
 
@@ -47,11 +49,12 @@ const respond = async (interaction, { ephemeral = true } = {}) => {
     ({ meta = {}, ...response } = responseObj);
   }
 
-  if (ephemeral || !meta.success) {
-    console.log('sending reply', response.content);
+  if (ephemeral || meta.success === false) {
+    console.log('+ ephemeral or failure', ephemeral, meta.success);
     await interaction.editReply(response);
   } else {
     // Send a message to the interaction's channel.
+    console.log('+ public message');
     await interaction.editReply({ content: 'Done.', embeds: [], components: [] });
     await interaction.channel.send(response);
   }

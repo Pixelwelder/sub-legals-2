@@ -133,7 +133,7 @@ const forge = createAsyncThunk(`${name}/forge`, async ({ userId, data }, { dispa
         Object.entries(statModifiers).forEach(([statName, statValue]) => {
           const index = StatIndexes[statName];
           const stat = statsArr[index];
-          stat.value = statValue
+          stat.value += statValue
         });
       }
       return statsArr;
@@ -173,7 +173,7 @@ const forge = createAsyncThunk(`${name}/forge`, async ({ userId, data }, { dispa
       transaction.delete(getFirestore().collection('discord_inventory').doc(schematic.uid));
 
       // Now remove the thread that got us here.
-      // transaction.delete(getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(userId));
+      transaction.delete(getFirestore().collection('discord_ui').doc('crafting').collection('in-flight').doc(userId));
       // Now we wait.
       console.log('--- forging complete ---');
       return { success: true, newItem };
