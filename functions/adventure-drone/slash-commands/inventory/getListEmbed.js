@@ -10,6 +10,8 @@ const imageRoot = 'http://storage.googleapis.com/species-registry.appspot.com/im
 const getListEmbed = async (interaction) => {
   console.log('getListEmbed');
   const userId = interaction.member.id;
+  // Load inventory.
+  await store.dispatch(inventoryActions.loadInventory({ userId }));
   const items = getSelectors(userId).selectInventory(store.getState());
 
   const embed = new MessageEmbed()
@@ -31,7 +33,7 @@ const getListEmbed = async (interaction) => {
     embed.setDescription('You don\'t have any items.');
   }
 
-  return { embeds: [embed], components: [] };
+  return { embeds: [embed], components: [], content: 'getListEmbed' };
 };
 
 module.exports = getListEmbed;

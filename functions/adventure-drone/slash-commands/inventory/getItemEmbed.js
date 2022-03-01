@@ -8,6 +8,7 @@ const ItemTypes = require('../../data/ItemTypes');
 const oxfordComma = require('../../../utils/oxfordComma');
 const { getClient } = require('../../client');
 const { getFirestore } = require('firebase-admin/firestore');
+const DialogIds = require('./DialogIds');
 
 const imageRoot = 'http://storage.googleapis.com/species-registry.appspot.com/images/inventory/icon';
 
@@ -88,6 +89,15 @@ const getItemEmbed = async (interaction) => {
       //   );
       // }
 
+      // if (item.type === ItemTypes.SCHEMATIC) {
+      //   buttons.push(
+      //     new MessageButton()
+      //       .setCustomId('command:forge')
+      //       .setLabel('Build')
+      //       .setStyle('PRIMARY')
+      //   );
+      // }
+
       // if (item.data.schematic) {
       //   buttons.push(
       //     new MessageButton()
@@ -122,7 +132,7 @@ const getItemEmbed = async (interaction) => {
 
     // Grab ID, then blank buttons to avoid bug.
     const { customId } = i.component;
-    await i.update({ components: [] });
+    await interaction.editReply({ components: [] });
     
     console.log('button', customId);
     switch (customId) {
@@ -136,8 +146,18 @@ const getItemEmbed = async (interaction) => {
         break;
 
       case ButtonIds.DISASSEMBLE:
-        await store.dispatch(inventoryActions.disassemble({ userId, itemId: item.uid }));
-        return { content: `**${displayName}** was disassembled.`, embeds: [], components: [] };
+        await store.dispatch(inventoryActions.saveThread({
+          userId,
+          dialogId: DialogIds.DISASSEMBLE,
+          data: { ephemeral: true, itemUid: item.uid }
+        }));
+
+        // Problem: how do I get to respond() in inventory.js?
+        // Idea: call it every time the thread changes. But then it doesn't have the interaction.
+        
+        break;
+        // await store.dispatch(inventoryActions.disassemble({ userId, itemId: item.uid }));
+        // return { content: `**${displayName}** was disassembled.`, embeds: [], components: [] };
 
       default:
         // TODO Fail back up the chain? Or at least do the same thing everywhere.
@@ -146,7 +166,6 @@ const getItemEmbed = async (interaction) => {
   });
 
   // ------------------------------------------------------------------------------------------------------------------
-  console.log('getItemEmbed: returning', components);
   return { embeds: [embed], components };
 };
 
